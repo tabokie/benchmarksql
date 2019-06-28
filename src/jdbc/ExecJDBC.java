@@ -50,7 +50,18 @@ public class ExecJDBC {
 				if (line.length() != 0) {
 					if (line.startsWith("--")) {
 						System.out.println(line);  // print comment line
+					} else if (sql.length() > 0 && sql.charAt(0) == '/'){
+						// chunk mode
+						sql.append(line);
+						if (line.endsWith("/")) {
+							String query = sql.toString();
+							execJDBC(stmt, query.substring(1, query.length() - 1));
+							sql = new StringBuffer();
+						} else {
+							sql.append("\n");
+						}
 					} else {
+						// escape mode
 						if (line.endsWith("\\;"))
 						{
 							sql.append(line.replaceAll("\\\\;", ";"));

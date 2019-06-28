@@ -17,6 +17,7 @@ public class jTPCCConnection
     private Connection          dbConn = null;
     private int                 dbType = 0;
 
+	public PreparedStatement    stmtNewOrderPl;
     public PreparedStatement    stmtNewOrderSelectWhseCust;
     public PreparedStatement    stmtNewOrderSelectDist;
     public PreparedStatement    stmtNewOrderUpdateDist;
@@ -27,6 +28,7 @@ public class jTPCCConnection
     public PreparedStatement    stmtNewOrderUpdateStock;
     public PreparedStatement    stmtNewOrderInsertOrderLine;
 
+	public PreparedStatement    stmtPaymentPl;
     public PreparedStatement    stmtPaymentSelectWarehouse;
     public PreparedStatement    stmtPaymentSelectDistrict;
     public PreparedStatement    stmtPaymentSelectCustomerListByLast;
@@ -45,6 +47,7 @@ public class jTPCCConnection
 
     public PreparedStatement    stmtStockLevelSelectLow;
 
+	public PreparedStatement    stmtDeliveryBGPl;
     public PreparedStatement    stmtDeliveryBGSelectOldestNewOrder;
     public PreparedStatement    stmtDeliveryBGDeleteOldestNewOrder;
     public PreparedStatement    stmtDeliveryBGSelectOrder;
@@ -59,7 +62,15 @@ public class jTPCCConnection
 		this.dbConn = dbConn;
 		this.dbType = dbType;
 
-		// PreparedStataments for NEW_ORDER
+		// PreparedStatements for NEW_ORDER
+		stmtNewOrderPl = dbConn.prepareStatement(
+			"DECLARE ol_iid MY_INT_ARR;ol_supply_wid MY_INT_ARR;ol_quantity MY_INT_ARR;" +
+			"BEGIN ol_iid := MY_INT_ARR(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?);" +
+			"ol_supply_wid := MY_INT_ARR(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?);" +
+			"ol_quantity := MY_INT_ARR(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?);" +
+			"bmsql_func_neworder(?,?,?,?,?,ol_iid,ol_supply_wid,ol_quantity);" +
+			"END;"
+		);
 		stmtNewOrderSelectWhseCust = dbConn.prepareStatement(
 			"SELECT c_discount, c_last, c_credit, w_tax " +
 			"    FROM bmsql_customer " +
@@ -109,6 +120,9 @@ public class jTPCCConnection
 			"VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
 
 		// PreparedStatements for PAYMENT
+		stmtPaymentPl = dbConn.prepareStatement(
+			"BEGIN bmsql_func_payment(?,?,?,?,?,?); END;"
+		);
 		stmtPaymentSelectWarehouse = dbConn.prepareStatement(
 			"SELECT w_name, w_street_1, w_street_2, w_city, " +
 			"       w_state, w_zip " +
@@ -227,6 +241,9 @@ public class jTPCCConnection
 		}
 
 		// PreparedStatements for DELIVERY_BG
+		stmtDeliveryBGPl = dbConn.prepareStatement(
+			"BEGIN bmsql_func_deliverybg(?,?); END;"
+		);
 		stmtDeliveryBGSelectOldestNewOrder = dbConn.prepareStatement(
 			"SELECT no_o_id " +
 			"    FROM bmsql_new_order " +

@@ -26,7 +26,8 @@ public class jTPCCTerminal implements jTPCCConfig, Runnable
     private ResultSet rs = null;
     private int terminalWarehouseID, terminalDistrictID;
     private boolean terminalWarehouseFixed;
-    private int paymentWeight, orderStatusWeight, deliveryWeight, stockLevelWeight, limPerMin_Terminal;
+	private int paymentWeight, orderStatusWeight, deliveryWeight, stockLevelWeight, limPerMin_Terminal;
+	private boolean plMode = false;
     private jTPCC parent;
     private jTPCCRandom rnd;
 
@@ -50,7 +51,8 @@ public class jTPCCTerminal implements jTPCCConfig, Runnable
        Connection conn, int dbType,
        int numTransactions, boolean terminalWarehouseFixed,
        int paymentWeight, int orderStatusWeight,
-       int deliveryWeight, int stockLevelWeight, int numWarehouses, int limPerMin_Terminal, jTPCC parent) throws SQLException
+	   int deliveryWeight, int stockLevelWeight, int numWarehouses, int limPerMin_Terminal, boolean plMode,
+	   jTPCC parent) throws SQLException
     {
 		this.terminalName = terminalName;
 		this.conn = conn;
@@ -75,6 +77,7 @@ public class jTPCCTerminal implements jTPCCConfig, Runnable
 		this.numWarehouses = numWarehouses;
 		this.newOrderCounter = 0;
 		this.limPerMin_Terminal = limPerMin_Terminal;
+		this.plMode = plMode;
 
 		this.db = new jTPCCConnection(conn, dbType);
 
@@ -153,6 +156,7 @@ public class jTPCCTerminal implements jTPCCConfig, Runnable
 				term.setNumWarehouses(numWarehouses);
 				term.setWarehouse(terminalWarehouseID);
 				term.setDistrict(terminalDistrictID);
+				term.setPlMode(plMode);
 				try
 				{
 					term.generatePayment(log, rnd, 0);
@@ -175,6 +179,7 @@ public class jTPCCTerminal implements jTPCCConfig, Runnable
 				term.setNumWarehouses(numWarehouses);
 				term.setWarehouse(terminalWarehouseID);
 				term.setDistrict(terminalDistrictID);
+				term.setPlMode(plMode);
 				try
 				{
 					term.generateStockLevel(log, rnd, 0);
@@ -197,6 +202,7 @@ public class jTPCCTerminal implements jTPCCConfig, Runnable
 				term.setNumWarehouses(numWarehouses);
 				term.setWarehouse(terminalWarehouseID);
 				term.setDistrict(terminalDistrictID);
+				term.setPlMode(plMode);
 				try
 				{
 					term.generateOrderStatus(log, rnd, 0);
@@ -219,6 +225,7 @@ public class jTPCCTerminal implements jTPCCConfig, Runnable
 				term.setNumWarehouses(numWarehouses);
 				term.setWarehouse(terminalWarehouseID);
 				term.setDistrict(terminalDistrictID);
+				term.setPlMode(plMode);
 				try
 				{
 					term.generateDelivery(log, rnd, 0);
@@ -254,6 +261,7 @@ public class jTPCCTerminal implements jTPCCConfig, Runnable
 				term.setNumWarehouses(numWarehouses);
 				term.setWarehouse(terminalWarehouseID);
 				term.setDistrict(terminalDistrictID);
+				term.setPlMode(plMode);
 				try
 				{
 					term.generateNewOrder(log, rnd, 0);

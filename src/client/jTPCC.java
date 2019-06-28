@@ -90,6 +90,8 @@ public class jTPCC implements jTPCCConfig
 		String  iWarehouses         = getProp(ini,"warehouses");
 		String  iTerminals          = getProp(ini,"terminals");
 
+		String  iPlMode             = getProp(ini, "pl_mode");
+
 		String  iRunTxnsPerTerminal =  ini.getProperty("runTxnsPerTerminal");
 		String iRunMins  =  ini.getProperty("runMins");
 		if (Integer.parseInt(iRunTxnsPerTerminal) ==0 && Integer.parseInt(iRunMins)!=0){
@@ -266,6 +268,7 @@ public class jTPCC implements jTPCCConfig
 			{
 				boolean limitIsTime = iRunMinsBool;
 				int numTerminals = -1;
+				boolean plMode = false;
 				int transactionsPerTerminal = -1;
 				int numWarehouses = -1;
 				int loadWarehouses = -1;
@@ -371,7 +374,17 @@ public class jTPCC implements jTPCCConfig
 					throw new Exception();
 				}
 
-
+				try
+				{
+					if (Integer.parseInt(iPlMode) != 0) {
+						plMode = true;
+					}
+				}
+				catch(NumberFormatException e1)
+				{
+					errorMessage("Invalid pl mode");
+					throw new Exception();
+				}
 
 				if(Long.parseLong(iRunMins) != 0 && Integer.parseInt(iRunTxnsPerTerminal) == 0)
 				{
@@ -480,7 +493,7 @@ public class jTPCC implements jTPCCConfig
 						conn, dbType,
 						transactionsPerTerminal, terminalWarehouseFixed,
 						paymentWeightValue, orderStatusWeightValue,
-						deliveryWeightValue, stockLevelWeightValue, numWarehouses, limPerMin_Terminal, this);
+						deliveryWeightValue, stockLevelWeightValue, numWarehouses, limPerMin_Terminal, plMode, this);
 
 						terminals[i] = terminal;
 						terminalNames[i] = terminalName;
