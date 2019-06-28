@@ -4,6 +4,12 @@ BENCHMARKSQL README
 CHANGE LOG:
 -----------
 
+Local Version:
+--------------------------------------
+  +  Use Oracle PL/SQL for large transaction
+  +  Add terminal range config to better support multi-driver bench
+  +  Fix tons of format issues
+
 Version 5.0 lussman & jannicash:
 --------------------------------------
   +  Upgrade to PostgreSQL 9.3 JDBC 4.1 version 1102 driver
