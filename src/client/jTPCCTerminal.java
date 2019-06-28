@@ -33,7 +33,9 @@ public class jTPCCTerminal implements jTPCCConfig, Runnable
 
     private int transactionCount = 1;
     private int numTransactions;
-    private int numWarehouses;
+	private int numWarehouses;
+	private int targetBegin;
+	private int targetSize;
     private int newOrderCounter;
     private long totalTnxs = 1;
     private StringBuffer query = null;
@@ -51,7 +53,7 @@ public class jTPCCTerminal implements jTPCCConfig, Runnable
        Connection conn, int dbType,
        int numTransactions, boolean terminalWarehouseFixed,
        int paymentWeight, int orderStatusWeight,
-	   int deliveryWeight, int stockLevelWeight, int numWarehouses, int limPerMin_Terminal, boolean plMode,
+	   int deliveryWeight, int stockLevelWeight, int numWarehouses, int targetBegin, int targetSize, int limPerMin_Terminal, boolean plMode,
 	   jTPCC parent) throws SQLException
     {
 		this.terminalName = terminalName;
@@ -75,6 +77,8 @@ public class jTPCCTerminal implements jTPCCConfig, Runnable
 		this.deliveryWeight = deliveryWeight;
 		this.stockLevelWeight = stockLevelWeight;
 		this.numWarehouses = numWarehouses;
+		this.targetBegin = targetBegin;
+		this.targetSize = targetSize;
 		this.newOrderCounter = 0;
 		this.limPerMin_Terminal = limPerMin_Terminal;
 		this.plMode = plMode;
@@ -153,7 +157,8 @@ public class jTPCCTerminal implements jTPCCConfig, Runnable
 			if(transactionType <= paymentWeight)
 			{
 				jTPCCTData      term = new jTPCCTData();
-				term.setNumWarehouses(numWarehouses);
+				term.setTargetBegin(targetBegin);
+				term.setTargetSize(targetSize);
 				term.setWarehouse(terminalWarehouseID);
 				term.setDistrict(terminalDistrictID);
 				term.setPlMode(plMode);
@@ -176,7 +181,8 @@ public class jTPCCTerminal implements jTPCCConfig, Runnable
 			else if(transactionType <= paymentWeight + stockLevelWeight)
 			{
 				jTPCCTData      term = new jTPCCTData();
-				term.setNumWarehouses(numWarehouses);
+				term.setTargetBegin(targetBegin);
+				term.setTargetSize(targetSize);
 				term.setWarehouse(terminalWarehouseID);
 				term.setDistrict(terminalDistrictID);
 				term.setPlMode(plMode);
@@ -199,7 +205,8 @@ public class jTPCCTerminal implements jTPCCConfig, Runnable
 			else if(transactionType <= paymentWeight + stockLevelWeight + orderStatusWeight)
 			{
 				jTPCCTData      term = new jTPCCTData();
-				term.setNumWarehouses(numWarehouses);
+				term.setTargetBegin(targetBegin);
+				term.setTargetSize(targetSize);
 				term.setWarehouse(terminalWarehouseID);
 				term.setDistrict(terminalDistrictID);
 				term.setPlMode(plMode);
@@ -222,7 +229,8 @@ public class jTPCCTerminal implements jTPCCConfig, Runnable
 			else if(transactionType <= paymentWeight + stockLevelWeight + orderStatusWeight + deliveryWeight)
 			{
 				jTPCCTData      term = new jTPCCTData();
-				term.setNumWarehouses(numWarehouses);
+				term.setTargetBegin(targetBegin);
+				term.setTargetSize(targetSize);
 				term.setWarehouse(terminalWarehouseID);
 				term.setDistrict(terminalDistrictID);
 				term.setPlMode(plMode);
@@ -258,7 +266,8 @@ public class jTPCCTerminal implements jTPCCConfig, Runnable
 			else
 			{
 				jTPCCTData      term = new jTPCCTData();
-				term.setNumWarehouses(numWarehouses);
+				term.setTargetBegin(targetBegin);
+				term.setTargetSize(targetSize);
 				term.setWarehouse(terminalWarehouseID);
 				term.setDistrict(terminalDistrictID);
 				term.setPlMode(plMode);

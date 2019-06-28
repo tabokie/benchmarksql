@@ -13,7 +13,8 @@ import java.sql.*;
 
 public class jTPCCTData
 {
-    protected int               numWarehouses = 0;
+    protected int               targetBegin = 0;
+    protected int               targetSize = 0;
 
     public final static int
     TT_NEW_ORDER = 0,
@@ -58,11 +59,14 @@ public class jTPCCTData
     private StringBuffer        resultSB = new StringBuffer();
     private Formatter           resultFmt = new Formatter(resultSB);
 
-    public void setNumWarehouses(int num)
-    {
-        numWarehouses = num;
+    public void setTargetBegin(int n) {
+        targetBegin = n;
     }
 
+    public void setTargetSize(int n) {
+        targetSize = n;
+    }
+    
     public void setWarehouse(int warehouse)
     {
         terminalWarehouse = warehouse;
@@ -291,7 +295,7 @@ public class jTPCCTData
             if (rnd.nextInt(1, 100) <= 99)
                 newOrder.ol_supply_w_id[i] = terminalWarehouse;
             else
-                newOrder.ol_supply_w_id[i] = rnd.nextInt(1, numWarehouses);
+                newOrder.ol_supply_w_id[i] = targetBegin + rnd.nextInt(1, targetSize);
             newOrder.ol_quantity[i] = rnd.nextInt(1, 10);
             i++;
         }
@@ -873,8 +877,8 @@ public class jTPCCTData
         if (rnd.nextInt(1, 100) > 85)
         {
             payment.c_d_id = rnd.nextInt(1, 10);
-            while (payment.c_w_id == payment.w_id && numWarehouses > 1)
-                payment.c_w_id = rnd.nextInt(1, numWarehouses);
+            while (payment.c_w_id == payment.w_id && targetSize > 1)
+                payment.c_w_id = targetBegin + rnd.nextInt(1, targetSize);
         }
         if (rnd.nextInt(1, 100) <= 60)
         {
@@ -1761,7 +1765,8 @@ log.trace("w_zip=" + payment.w_zip + " d_zip=" + payment.d_zip);
         * foreground part of the DELIVERY transaction. Because of that
         * it inherits certain information from it.
         */
-        numWarehouses           = parent.numWarehouses;
+        targetBegin             = parent.targetBegin;
+        targetSize              = parent.targetSize;
         terminalWarehouse       = parent.terminalWarehouse;
         terminalDistrict        = parent.terminalDistrict;
 

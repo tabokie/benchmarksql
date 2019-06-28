@@ -90,6 +90,11 @@ public class jTPCC implements jTPCCConfig
 		String  iWarehouses         = getProp(ini,"warehouses");
 		String  iTerminals          = getProp(ini,"terminals");
 
+		String  iTargetBegin        = getProp(ini,"target_begin");
+		String  iTargetSize         = getProp(ini,"target_size");
+		String  iSourceBegin        = getProp(ini,"source_begin");
+		String  iSourceSize         = getProp(ini,"source_size");
+
 		String  iPlMode             = getProp(ini, "pl_mode");
 
 		String  iRunTxnsPerTerminal =  ini.getProperty("runTxnsPerTerminal");
@@ -272,6 +277,10 @@ public class jTPCC implements jTPCCConfig
 				int transactionsPerTerminal = -1;
 				int numWarehouses = -1;
 				int loadWarehouses = -1;
+				int targetBegin = 0;
+				int targetSize = -1;
+				int sourceBegin = 0;
+				int sourceSize = -1;
 				int newOrderWeightValue = -1, paymentWeightValue = -1, orderStatusWeightValue = -1, deliveryWeightValue = -1, stockLevelWeightValue = -1;
 				long executionTimeMillis = -1;
 				boolean terminalWarehouseFixed = true;
@@ -376,6 +385,56 @@ public class jTPCC implements jTPCCConfig
 
 				try
 				{
+					targetBegin = Integer.parseInt(iTargetBegin);
+					if (targetBegin >= numWarehouses)
+						throw new NumberFormatException();
+				}
+				catch(NumberFormatException e1)
+				{
+					errorMessage("Invalid target begin");
+					throw new Exception();
+				}
+
+				try
+				{
+					targetSize = Integer.parseInt(iTargetSize);
+					if (targetSize == 0) targetSize = numWarehouses - targetBegin;
+					else if (targetSize - targetBegin > numWarehouses)
+						throw new NumberFormatException();
+				}
+				catch(NumberFormatException e1)
+				{
+					errorMessage("Invalid target size");
+					throw new Exception();
+				}
+
+				try
+				{
+					sourceBegin = Integer.parseInt(iSourceBegin);
+					if (sourceBegin >= numWarehouses)
+						throw new NumberFormatException();
+				}
+				catch(NumberFormatException e1)
+				{
+					errorMessage("Invalid source begin");
+					throw new Exception();
+				}
+
+				try
+				{
+					sourceSize = Integer.parseInt(iSourceSize);
+					if (sourceSize == 0) sourceSize = numWarehouses - sourceBegin;
+					else if (sourceSize - sourceBegin > numWarehouses)
+						throw new NumberFormatException();
+				}
+				catch(NumberFormatException e1)
+				{
+					errorMessage("Invalid source size");
+					throw new Exception();
+				}
+
+				try
+				{
 					if (Integer.parseInt(iPlMode) != 0) {
 						plMode = true;
 					}
@@ -465,8 +524,8 @@ public class jTPCC implements jTPCCConfig
 					String username = iUser;
 					String password = iPassword;
 
-					int[][] usedTerminals = new int[numWarehouses][10];
-					for(int i = 0; i < numWarehouses; i++)
+					int[][] usedTerminals = new int[sourceSize][10];
+					for(int i = 0; i < sourceSize; i++)
 						for(int j = 0; j < 10; j++)
 							usedTerminals[i][j] = 0;
 
@@ -476,7 +535,7 @@ public class jTPCC implements jTPCCConfig
 						int terminalDistrictID;
 						do
 						{
-							terminalWarehouseID = rnd.nextInt(1, numWarehouses);
+							terminalWarehouseID = rnd.nextInt(1, sourceSize);
 							terminalDistrictID = rnd.nextInt(1, 10);
 						}
 						while(usedTerminals[terminalWarehouseID-1][terminalDistrictID-1] == 1);
@@ -489,11 +548,11 @@ public class jTPCC implements jTPCCConfig
 						conn.setAutoCommit(false);
 
 						jTPCCTerminal terminal = new jTPCCTerminal
-						(terminalName, terminalWarehouseID, terminalDistrictID,
+						(terminalName, terminalWarehouseID + sourceBegin, terminalDistrictID,
 						conn, dbType,
 						transactionsPerTerminal, terminalWarehouseFixed,
 						paymentWeightValue, orderStatusWeightValue,
-						deliveryWeightValue, stockLevelWeightValue, numWarehouses, limPerMin_Terminal, plMode, this);
+						deliveryWeightValue, stockLevelWeightValue, numWarehouses, targetBegin, targetSize, limPerMin_Terminal, plMode, this);
 
 						terminals[i] = terminal;
 						terminalNames[i] = terminalName;
