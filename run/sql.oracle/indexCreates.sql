@@ -124,3 +124,12 @@ create table bmsql_stock (
   s_dist_09    char(24),
   s_dist_10    char(24)
 );
+
+-- execute in sqlplus
+-- exec dbms_stats.gather_schema_stats(   
+--   ownname          => 'BMSQL',   
+--   options          => 'GATHER AUTO',   
+--   estimate_percent => dbms_stats.auto_sample_size,   
+--   method_opt       => 'for all columns size repeat',   
+--   degree           => 34   
+-- );

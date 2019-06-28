@@ -53,7 +53,7 @@ create table bmsql_customer (
   c_data         varchar(500)
 );
 
-create sequence bmsql_hist_id_seq;
+create sequence bmsql_hist_id_seq START WITH 1 INCREMENT BY 1 CACHE 100;
 
 create table bmsql_history (
   hist_id  integer,
@@ -66,6 +66,17 @@ create table bmsql_history (
   h_amount decimal(6,2),
   h_data   varchar(24)
 );
+
+CREATE TRIGGER bmsql_history_autoincr
+BEFORE INSERT 
+ON bmsql_history
+FOR EACH ROW
+BEGIN
+SELECT bmsql_hist_id_seq.NEXTVAL
+INTO   :new.hist_id
+FROM   dual\;
+END\;
+;
 
 create table bmsql_new_order (
   no_w_id  integer   not null,

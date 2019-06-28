@@ -66,7 +66,7 @@ public class ExecJDBC {
 								sql = new StringBuffer();
 							} else {
 								sql.append("\n");
-						 }
+						 	}
 						}
 					}
 
