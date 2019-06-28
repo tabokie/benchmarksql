@@ -15,100 +15,100 @@ import java.util.*;
 public class ExecJDBC {
 
 
-  public static void main(String[] args) {
+	public static void main(String[] args) {
 
-    Connection conn = null;
-    Statement stmt = null;
-    String rLine = null;
-    StringBuffer sql = new StringBuffer();
+		Connection conn = null;
+		Statement stmt = null;
+		String rLine = null;
+		StringBuffer sql = new StringBuffer();
 
-    try {
+		try {
 
-    Properties ini = new Properties();
-    ini.load( new FileInputStream(System.getProperty("prop")));
+		Properties ini = new Properties();
+		ini.load( new FileInputStream(System.getProperty("prop")));
 
-    // Register jdbcDriver
-    Class.forName(ini.getProperty( "driver" ));
+		// Register jdbcDriver
+		Class.forName(ini.getProperty( "driver" ));
 
-    // make connection
-    conn = DriverManager.getConnection(ini.getProperty("conn"),
-      ini.getProperty("user"),ini.getProperty("password"));
-    conn.setAutoCommit(true);
+		// make connection
+		conn = DriverManager.getConnection(ini.getProperty("conn"),
+			ini.getProperty("user"),ini.getProperty("password"));
+		conn.setAutoCommit(true);
 
-    // Create Statement
-    stmt = conn.createStatement();
+		// Create Statement
+		stmt = conn.createStatement();
 
-      // Open inputFile
-      BufferedReader in = new BufferedReader
-        (new FileReader(jTPCCUtil.getSysProp("commandFile",null)));
+			// Open inputFile
+			BufferedReader in = new BufferedReader
+				(new FileReader(jTPCCUtil.getSysProp("commandFile",null)));
 
-      // loop thru input file and concatenate SQL statement fragments
-      while((rLine = in.readLine()) != null) {
+			// loop thru input file and concatenate SQL statement fragments
+			while((rLine = in.readLine()) != null) {
 
-         String line = rLine.trim();
+				String line = rLine.trim();
 
-         if (line.length() != 0) {
-           if (line.startsWith("--")) {
-              System.out.println(line);  // print comment line
-           } else {
-	       if (line.endsWith("\\;"))
-	       {
-	         sql.append(line.replaceAll("\\\\;", ";"));
-		 sql.append("\n");
-	       }
-	       else
-	       {
-		   sql.append(line.replaceAll("\\\\;", ";"));
-		   if (line.endsWith(";")) {
-		      String query = sql.toString();
+				if (line.length() != 0) {
+					if (line.startsWith("--")) {
+						System.out.println(line);  // print comment line
+					} else {
+						if (line.endsWith("\\;"))
+						{
+							sql.append(line.replaceAll("\\\\;", ";"));
+							sql.append("\n");
+						}
+						else
+						{
+							sql.append(line.replaceAll("\\\\;", ";"));
+							if (line.endsWith(";")) {
+								String query = sql.toString();
 
-		      execJDBC(stmt, query.substring(0, query.length() - 1));
-		      sql = new StringBuffer();
-		   } else {
-		     sql.append("\n");
-		   }
-	       }
-           }
+								execJDBC(stmt, query.substring(0, query.length() - 1));
+								sql = new StringBuffer();
+							} else {
+								sql.append("\n");
+						 }
+						}
+					}
 
-         } //end if
+				} //end if
 
-      } //end while
+			} //end while
 
-      in.close();
+			in.close();
 
-    } catch(IOException ie) {
-        System.out.println(ie.getMessage());
+		} catch(IOException ie) {
+			System.out.println(ie.getMessage());
 
-    } catch(SQLException se) {
-        System.out.println(se.getMessage());
+		} catch(SQLException se) {
+			System.out.println(se.getMessage());
 
-    } catch(Exception e) {
-        e.printStackTrace();
+		} catch(Exception e) {
+			e.printStackTrace();
 
-    //exit Cleanly
-    } finally {
-      try {
-        if (conn !=null)
-           conn.close();
-      } catch(SQLException se) {
-        se.printStackTrace();
-      } // end finally
+		//exit Cleanly
+		} finally {
+			try {
+				if (conn !=null)
+					conn.close();
+			} catch(SQLException se) {
+				se.printStackTrace();
+			} // end finally
 
-    } // end try
+		} // end try
 
-  } // end main
+	} // end main
 
 
-  static void execJDBC(Statement stmt, String query) {
+	static void execJDBC(Statement stmt, String query) {
 
-    System.out.println(query + ";");
+		System.out.println(query + ";");
 
-    try {
-      stmt.execute(query);
-    }catch(SQLException se) {
-      System.out.println(se.getMessage());
-    } // end try
+		try {
+			stmt.execute(query);
+		}catch(SQLException se) {
+			System.out.println(se.getMessage());
+		} // end try
 
-  } // end execJDBCCommand
+	} // end execJDBCCommand
 
 } // end ExecJDBC Class

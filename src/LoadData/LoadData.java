@@ -44,356 +44,356 @@ public class LoadData
     private static BufferedWriter       newOrderCSV = null;
 
     public static void main(String[] args) {
-	int     i;
+        int     i;
 
-	System.out.println("Starting BenchmarkSQL LoadData");
-	System.out.println("");
+        System.out.println("Starting BenchmarkSQL LoadData");
+        System.out.println("");
 
-	/*
-	 * Load the Benchmark properties file.
-	 */
-	try
-	{
-	    ini.load(new FileInputStream(System.getProperty("prop")));
-	}
-	catch (IOException e)
-	{
-	    System.err.println("ERROR: " + e.getMessage());
-	    System.exit(1);
-	}
-	argv = args;
+        /*
+        * Load the Benchmark properties file.
+        */
+        try
+        {
+            ini.load(new FileInputStream(System.getProperty("prop")));
+        }
+        catch (IOException e)
+        {
+            System.err.println("ERROR: " + e.getMessage());
+            System.exit(1);
+        }
+        argv = args;
 
-	/*
-	 * Initialize the global Random generator that picks the
-	 * C values for the load.
-	 */
-	rnd = new jTPCCRandom();
+        /*
+        * Initialize the global Random generator that picks the
+        * C values for the load.
+        */
+        rnd = new jTPCCRandom();
 
-	/*
-	 * Load the JDBC driver and prepare the db and dbProps.
-	 */
-	try {
-	    Class.forName(iniGetString("driver"));
-	}
-	catch (Exception e)
-	{
-	    System.err.println("ERROR: cannot load JDBC driver - " +
-			       e.getMessage());
-	    System.exit(1);
-	}
-	db = iniGetString("conn");
-	dbProps = new Properties();
-	dbProps.setProperty("user", iniGetString("user"));
-	dbProps.setProperty("password", iniGetString("password"));
+        /*
+        * Load the JDBC driver and prepare the db and dbProps.
+        */
+        try {
+            Class.forName(iniGetString("driver"));
+        }
+        catch (Exception e)
+        {
+            System.err.println("ERROR: cannot load JDBC driver - " +
+                            e.getMessage());
+            System.exit(1);
+        }
+        db = iniGetString("conn");
+        dbProps = new Properties();
+        dbProps.setProperty("user", iniGetString("user"));
+        dbProps.setProperty("password", iniGetString("password"));
 
-	/*
-	 * Parse other vital information from the props file.
-	 */
-	numWarehouses   = iniGetInt("warehouses");
-	numWorkers      = iniGetInt("loadWorkers", 4);
-	fileLocation    = iniGetString("fileLocation");
-	csvNullValue    = iniGetString("csvNullValue", "NULL");
+        /*
+        * Parse other vital information from the props file.
+        */
+        numWarehouses   = iniGetInt("warehouses");
+        numWorkers      = iniGetInt("loadWorkers", 4);
+        fileLocation    = iniGetString("fileLocation");
+        csvNullValue    = iniGetString("csvNullValue", "NULL");
 
-	/*
-	 * If CSV files are requested, open them all.
-	 */
-	if (fileLocation != null)
-	{
-	    writeCSV = true;
+        /*
+        * If CSV files are requested, open them all.
+        */
+        if (fileLocation != null)
+        {
+            writeCSV = true;
 
-	    try
-	    {
-		configCSV = new BufferedWriter(new FileWriter(fileLocation +
-							      "config.csv"));
-		itemCSV = new BufferedWriter(new FileWriter(fileLocation +
-							      "item.csv"));
-		warehouseCSV = new BufferedWriter(new FileWriter(fileLocation +
-							      "warehouse.csv"));
-		districtCSV = new BufferedWriter(new FileWriter(fileLocation +
-							      "district.csv"));
-		stockCSV = new BufferedWriter(new FileWriter(fileLocation +
-							      "stock.csv"));
-		customerCSV = new BufferedWriter(new FileWriter(fileLocation +
-							      "customer.csv"));
-		historyCSV = new BufferedWriter(new FileWriter(fileLocation +
-							      "cust-hist.csv"));
-		orderCSV = new BufferedWriter(new FileWriter(fileLocation +
-							      "order.csv"));
-		orderLineCSV = new BufferedWriter(new FileWriter(fileLocation +
-							      "order-line.csv"));
-		newOrderCSV = new BufferedWriter(new FileWriter(fileLocation +
-							      "new-order.csv"));
-	    }
-	    catch (IOException ie)
-	    {
-		System.err.println(ie.getMessage());
-		System.exit(3);
-	    }
-	}
+            try
+            {
+                configCSV = new BufferedWriter(new FileWriter(fileLocation +
+                                            "config.csv"));
+                itemCSV = new BufferedWriter(new FileWriter(fileLocation +
+                                            "item.csv"));
+                warehouseCSV = new BufferedWriter(new FileWriter(fileLocation +
+                                                "warehouse.csv"));
+                districtCSV = new BufferedWriter(new FileWriter(fileLocation +
+                                                "district.csv"));
+                stockCSV = new BufferedWriter(new FileWriter(fileLocation +
+                                            "stock.csv"));
+                customerCSV = new BufferedWriter(new FileWriter(fileLocation +
+                                                "customer.csv"));
+                historyCSV = new BufferedWriter(new FileWriter(fileLocation +
+                                                "cust-hist.csv"));
+                orderCSV = new BufferedWriter(new FileWriter(fileLocation +
+                                            "order.csv"));
+                orderLineCSV = new BufferedWriter(new FileWriter(fileLocation +
+                                                "order-line.csv"));
+                newOrderCSV = new BufferedWriter(new FileWriter(fileLocation +
+                                                "new-order.csv"));
+            }
+            catch (IOException ie)
+            {
+                System.err.println(ie.getMessage());
+                System.exit(3);
+            }
+        }
 
-	System.out.println("");
+        System.out.println("");
 
-	/*
-	 * Create the number of requested workers and start them.
-	 */
-	workers = new LoadDataWorker[numWorkers];
-	workerThreads = new Thread[numWorkers];
-	for (i = 0; i < numWorkers; i++)
-	{
-	    Connection dbConn;
+        /*
+        * Create the number of requested workers and start them.
+        */
+        workers = new LoadDataWorker[numWorkers];
+        workerThreads = new Thread[numWorkers];
+        for (i = 0; i < numWorkers; i++)
+        {
+            Connection dbConn;
 
-	    try
-	    {
-		dbConn = DriverManager.getConnection(db, dbProps);
-		dbConn.setAutoCommit(false);
-		if (writeCSV)
-		    workers[i] = new LoadDataWorker(i, csvNullValue,
-							rnd.newRandom());
-		else
-		    workers[i] = new LoadDataWorker(i, dbConn,
-							rnd.newRandom());
-		workerThreads[i] = new Thread(workers[i]);
-		workerThreads[i].start();
-	    }
-	    catch (SQLException se)
-	    {
-		System.err.println("ERROR: " + se.getMessage());
-		System.exit(3);
-		return;
-	    }
+            try
+            {
+                dbConn = DriverManager.getConnection(db, dbProps);
+                dbConn.setAutoCommit(false);
+                if (writeCSV)
+                    workers[i] = new LoadDataWorker(i, csvNullValue,
+                                                    rnd.newRandom());
+                else
+                    workers[i] = new LoadDataWorker(i, dbConn,
+                                                    rnd.newRandom());
+                workerThreads[i] = new Thread(workers[i]);
+                workerThreads[i].start();
+            }
+            catch (SQLException se)
+            {
+                System.err.println("ERROR: " + se.getMessage());
+                System.exit(3);
+                return;
+            }
 
-	}
+        }
 
-	for (i = 0; i < numWorkers; i++)
-	{
-	    try {
-		workerThreads[i].join();
-	    }
-	    catch (InterruptedException ie)
-	    {
-		System.err.println("ERROR: worker " + i + " - " +
-				   ie.getMessage());
-		System.exit(4);
-	    }
-	}
+        for (i = 0; i < numWorkers; i++)
+        {
+            try {
+                workerThreads[i].join();
+            }
+            catch (InterruptedException ie)
+            {
+                System.err.println("ERROR: worker " + i + " - " +
+                                ie.getMessage());
+                System.exit(4);
+            }
+        }
 
-	/*
-	 * Close the CSV files if we are writing them.
-	 */
-	if (writeCSV)
-	{
-	    try
-	    {
-		configCSV.close();
-		itemCSV.close();
-		warehouseCSV.close();
-		districtCSV.close();
-		stockCSV.close();
-		customerCSV.close();
-		historyCSV.close();
-		orderCSV.close();
-		orderLineCSV.close();
-		newOrderCSV.close();
-	    }
-	    catch (IOException ie)
-	    {
-		System.err.println(ie.getMessage());
-		System.exit(3);
-	    }
-	}
+        /*
+        * Close the CSV files if we are writing them.
+        */
+        if (writeCSV)
+        {
+            try
+            {
+                configCSV.close();
+                itemCSV.close();
+                warehouseCSV.close();
+                districtCSV.close();
+                stockCSV.close();
+                customerCSV.close();
+                historyCSV.close();
+                orderCSV.close();
+                orderLineCSV.close();
+                newOrderCSV.close();
+            }
+            catch (IOException ie)
+            {
+                System.err.println(ie.getMessage());
+                System.exit(3);
+            }
+        }
     } // End of main()
 
     public static void configAppend(StringBuffer buf)
-	throws IOException
+    throws IOException
     {
-	synchronized(configCSV)
-	{
-	    configCSV.write(buf.toString());
-	}
-	buf.setLength(0);
+        synchronized(configCSV)
+        {
+            configCSV.write(buf.toString());
+        }
+        buf.setLength(0);
     }
 
     public static void itemAppend(StringBuffer buf)
-	throws IOException
+    throws IOException
     {
-	synchronized(itemCSV)
-	{
-	    itemCSV.write(buf.toString());
-	}
-	buf.setLength(0);
+        synchronized(itemCSV)
+        {
+            itemCSV.write(buf.toString());
+        }
+        buf.setLength(0);
     }
 
     public static void warehouseAppend(StringBuffer buf)
-	throws IOException
+    throws IOException
     {
-	synchronized(warehouseCSV)
-	{
-	    warehouseCSV.write(buf.toString());
-	}
-	buf.setLength(0);
+        synchronized(warehouseCSV)
+        {
+            warehouseCSV.write(buf.toString());
+        }
+        buf.setLength(0);
     }
 
     public static void districtAppend(StringBuffer buf)
-	throws IOException
+    throws IOException
     {
-	synchronized(districtCSV)
-	{
-	    districtCSV.write(buf.toString());
-	}
-	buf.setLength(0);
+        synchronized(districtCSV)
+        {
+            districtCSV.write(buf.toString());
+        }
+        buf.setLength(0);
     }
 
     public static void stockAppend(StringBuffer buf)
-	throws IOException
+    throws IOException
     {
-	synchronized(stockCSV)
-	{
-	    stockCSV.write(buf.toString());
-	}
-	buf.setLength(0);
+        synchronized(stockCSV)
+        {
+            stockCSV.write(buf.toString());
+        }
+        buf.setLength(0);
     }
 
     public static void customerAppend(StringBuffer buf)
-	throws IOException
+    throws IOException
     {
-	synchronized(customerCSV)
-	{
-	    customerCSV.write(buf.toString());
-	}
-	buf.setLength(0);
+        synchronized(customerCSV)
+        {
+            customerCSV.write(buf.toString());
+        }
+        buf.setLength(0);
     }
 
     public static void historyAppend(StringBuffer buf)
-	throws IOException
+    throws IOException
     {
-	synchronized(historyCSV)
-	{
-	    historyCSV.write(buf.toString());
-	}
-	buf.setLength(0);
+        synchronized(historyCSV)
+        {
+            historyCSV.write(buf.toString());
+        }
+        buf.setLength(0);
     }
 
     public static void orderAppend(StringBuffer buf)
-	throws IOException
+    throws IOException
     {
-	synchronized(orderCSV)
-	{
-	    orderCSV.write(buf.toString());
-	}
-	buf.setLength(0);
+        synchronized(orderCSV)
+        {
+            orderCSV.write(buf.toString());
+        }
+        buf.setLength(0);
     }
 
     public static void orderLineAppend(StringBuffer buf)
-	throws IOException
+    throws IOException
     {
-	synchronized(orderLineCSV)
-	{
-	    orderLineCSV.write(buf.toString());
-	}
-	buf.setLength(0);
+        synchronized(orderLineCSV)
+        {
+            orderLineCSV.write(buf.toString());
+        }
+        buf.setLength(0);
     }
 
     public static void newOrderAppend(StringBuffer buf)
-	throws IOException
+    throws IOException
     {
-	synchronized(newOrderCSV)
-	{
-	    newOrderCSV.write(buf.toString());
-	}
-	buf.setLength(0);
+        synchronized(newOrderCSV)
+        {
+            newOrderCSV.write(buf.toString());
+        }
+        buf.setLength(0);
     }
 
     public static int getNextJob()
     {
-	int     job;
+        int     job;
 
-	synchronized(nextJobLock)
-	{
-	    if (nextJob > numWarehouses)
-		job = -1;
-	    else
-		job = nextJob++;
-	}
+        synchronized(nextJobLock)
+        {
+            if (nextJob > numWarehouses)
+            job = -1;
+            else
+            job = nextJob++;
+        }
 
-	return job;
+        return job;
     }
 
     public static int getNumWarehouses()
     {
-	return numWarehouses;
+        return numWarehouses;
     }
 
     private static String iniGetString(String name)
     {
-	String  strVal = null;
+        String  strVal = null;
 
-	for (int i = 0; i < argv.length - 1; i += 2)
-	{
-	    if (name.toLowerCase().equals(argv[i].toLowerCase()))
-	    {
-		strVal = argv[i + 1];
-		break;
-	    }
-	}
+        for (int i = 0; i < argv.length - 1; i += 2)
+        {
+            if (name.toLowerCase().equals(argv[i].toLowerCase()))
+            {
+                strVal = argv[i + 1];
+                break;
+            }
+        }
 
-	if (strVal == null)
-	    strVal = ini.getProperty(name);
+        if (strVal == null)
+            strVal = ini.getProperty(name);
 
-	if (strVal == null)
-	    System.out.println(name + " (not defined)");
-	else
-	    if (name.equals("password"))
-		System.out.println(name + "=***********");
-	    else
-		System.out.println(name + "=" + strVal);
-	return strVal;
+        if (strVal == null)
+            System.out.println(name + " (not defined)");
+        else
+            if (name.equals("password"))
+                System.out.println(name + "=***********");
+            else
+                System.out.println(name + "=" + strVal);
+        return strVal;
     }
 
     private static String iniGetString(String name, String defVal)
     {
-	String  strVal = null;
+        String  strVal = null;
 
-	for (int i = 0; i < argv.length - 1; i += 2)
-	{
-	    if (name.toLowerCase().equals(argv[i].toLowerCase()))
-	    {
-		strVal = argv[i + 1];
-		break;
-	    }
-	}
+        for (int i = 0; i < argv.length - 1; i += 2)
+        {
+            if (name.toLowerCase().equals(argv[i].toLowerCase()))
+            {
+                strVal = argv[i + 1];
+                break;
+            }
+        }
 
-	if (strVal == null)
-	    strVal = ini.getProperty(name);
+        if (strVal == null)
+            strVal = ini.getProperty(name);
 
-	if (strVal == null)
-	{
-	    System.out.println(name + " (not defined - using default '" +
-			       defVal + "')");
-	    return defVal;
-	}
-	else
-	    if (name.equals("password"))
-		System.out.println(name + "=***********");
-	    else
-		System.out.println(name + "=" + strVal);
-	return strVal;
+        if (strVal == null)
+        {
+            System.out.println(name + " (not defined - using default '" +
+                               defVal + "')");
+            return defVal;
+        }
+        else
+            if (name.equals("password"))
+                System.out.println(name + "=***********");
+            else
+                System.out.println(name + "=" + strVal);
+        return strVal;
     }
 
     private static int iniGetInt(String name)
     {
-	String  strVal = iniGetString(name);
+        String  strVal = iniGetString(name);
 
-	if (strVal == null)
-	    return 0;
-	return Integer.parseInt(strVal);
+        if (strVal == null)
+            return 0;
+        return Integer.parseInt(strVal);
     }
 
     private static int iniGetInt(String name, int defVal)
     {
-	String  strVal = iniGetString(name);
+        String  strVal = iniGetString(name);
 
-	if (strVal == null)
-	    return defVal;
-	return Integer.parseInt(strVal);
+        if (strVal == null)
+            return defVal;
+        return Integer.parseInt(strVal);
     }
 }

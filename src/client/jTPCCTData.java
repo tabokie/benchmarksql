@@ -59,180 +59,180 @@ public class jTPCCTData
 
     public void setNumWarehouses(int num)
     {
-	numWarehouses = num;
+		numWarehouses = num;
     }
 
     public void setWarehouse(int warehouse)
     {
-	terminalWarehouse = warehouse;
+		terminalWarehouse = warehouse;
     }
 
     public int getWarehouse()
     {
-	return terminalWarehouse;
+		return terminalWarehouse;
     }
 
     public void setDistrict(int district)
     {
-	terminalDistrict = district;
+		terminalDistrict = district;
     }
 
     public int getDistrict()
     {
-	return terminalDistrict;
+		return terminalDistrict;
     }
 
     public void execute(Logger log, jTPCCConnection db)
 	throws Exception
     {
-	transStart = System.currentTimeMillis();
-	if (transDue == 0)
-	    transDue = transStart;
+		transStart = System.currentTimeMillis();
+		if (transDue == 0)
+			transDue = transStart;
 
-	switch (transType)
-	{
-	    case TT_NEW_ORDER:
-		executeNewOrder(log, db);
-		break;
+		switch (transType)
+		{
+			case TT_NEW_ORDER:
+			executeNewOrder(log, db);
+			break;
 
-	    case TT_PAYMENT:
-		executePayment(log, db);
-		break;
+			case TT_PAYMENT:
+			executePayment(log, db);
+			break;
 
-	    case TT_ORDER_STATUS:
-		executeOrderStatus(log, db);
-		break;
+			case TT_ORDER_STATUS:
+			executeOrderStatus(log, db);
+			break;
 
-	    case TT_STOCK_LEVEL:
-		executeStockLevel(log, db);
-		break;
+			case TT_STOCK_LEVEL:
+			executeStockLevel(log, db);
+			break;
 
-	    case TT_DELIVERY:
-		executeDelivery(log, db);
-		break;
+			case TT_DELIVERY:
+			executeDelivery(log, db);
+			break;
 
-	    case TT_DELIVERY_BG:
-		executeDeliveryBG(log, db);
-		break;
+			case TT_DELIVERY_BG:
+			executeDeliveryBG(log, db);
+			break;
 
-	    default:
-		throw new Exception("Unknown transType " + transType);
-	}
+			default:
+			throw new Exception("Unknown transType " + transType);
+		}
 
-	transEnd = System.currentTimeMillis();
-    }
+		transEnd = System.currentTimeMillis();
+		}
 
-    public void traceScreen(Logger log)
-	throws Exception
-    {
-	StringBuffer    sb = new StringBuffer();
-	Formatter       fmt = new Formatter(sb);
+		public void traceScreen(Logger log)
+		throws Exception
+		{
+		StringBuffer    sb = new StringBuffer();
+		Formatter       fmt = new Formatter(sb);
 
-	StringBuffer    screenSb[] = new StringBuffer[23];
-	Formatter       screenFmt[] = new Formatter[23];
-	for (int i = 0; i < 23; i++)
-	{
-	    screenSb[i] = new StringBuffer();
-	    screenFmt[i] = new Formatter(screenSb[i]);
-	}
+		StringBuffer    screenSb[] = new StringBuffer[23];
+		Formatter       screenFmt[] = new Formatter[23];
+		for (int i = 0; i < 23; i++)
+		{
+			screenSb[i] = new StringBuffer();
+			screenFmt[i] = new Formatter(screenSb[i]);
+		}
 
-	if (!log.isTraceEnabled())
-	    return;
+		if (!log.isTraceEnabled())
+			return;
 
-	if (transType < TT_NEW_ORDER || transType > TT_DONE)
-	    throw new Exception("Unknown transType " + transType);
+		if (transType < TT_NEW_ORDER || transType > TT_DONE)
+			throw new Exception("Unknown transType " + transType);
 
-	synchronized(traceLock)
-	{
-	    fmt.format("==== %s %s ==== Terminal %d,%d =================================================",
-		       transTypeNames[transType],
-		       (transEnd == 0) ? "INPUT" : "OUTPUT",
-		       terminalWarehouse, terminalDistrict);
-	    sb.setLength(79);
-	    log.trace(sb.toString());
-	    sb.setLength(0);
+		synchronized(traceLock)
+		{
+			fmt.format("==== %s %s ==== Terminal %d,%d =================================================",
+				transTypeNames[transType],
+				(transEnd == 0) ? "INPUT" : "OUTPUT",
+				terminalWarehouse, terminalDistrict);
+			sb.setLength(79);
+			log.trace(sb.toString());
+			sb.setLength(0);
 
-	    fmt.format("---- Due:   %s", (transDue == 0) ? "N/A" :
-		       new java.sql.Timestamp(transDue).toString());
-	    log.trace(sb.toString());
-	    sb.setLength(0);
+			fmt.format("---- Due:   %s", (transDue == 0) ? "N/A" :
+				new java.sql.Timestamp(transDue).toString());
+			log.trace(sb.toString());
+			sb.setLength(0);
 
-	    fmt.format("---- Start: %s", (transStart == 0) ? "N/A" :
-		       new java.sql.Timestamp(transStart).toString());
-	    log.trace(sb.toString());
-	    sb.setLength(0);
+			fmt.format("---- Start: %s", (transStart == 0) ? "N/A" :
+				new java.sql.Timestamp(transStart).toString());
+			log.trace(sb.toString());
+			sb.setLength(0);
 
-	    fmt.format("---- End:   %s", (transEnd == 0) ? "N/A" :
-		       new java.sql.Timestamp(transEnd).toString());
-	    log.trace(sb.toString());
-	    sb.setLength(0);
+			fmt.format("---- End:   %s", (transEnd == 0) ? "N/A" :
+				new java.sql.Timestamp(transEnd).toString());
+			log.trace(sb.toString());
+			sb.setLength(0);
 
-	    if (transError != null)
-	    {
-		fmt.format("#### ERROR: %s", transError);
-		log.trace(sb.toString());
-		sb.setLength(0);
-	    }
+			if (transError != null)
+			{
+				fmt.format("#### ERROR: %s", transError);
+				log.trace(sb.toString());
+				sb.setLength(0);
+			}
 
-	    log.trace("-------------------------------------------------------------------------------");
+			log.trace("-------------------------------------------------------------------------------");
 
-	    switch (transType)
-	    {
-		case TT_NEW_ORDER:
-		    traceNewOrder(log, screenFmt);
-		    break;
+			switch (transType)
+			{
+			case TT_NEW_ORDER:
+				traceNewOrder(log, screenFmt);
+				break;
 
-		case TT_PAYMENT:
-		    tracePayment(log, screenFmt);
-		    break;
+			case TT_PAYMENT:
+				tracePayment(log, screenFmt);
+				break;
 
-		case TT_ORDER_STATUS:
-		    traceOrderStatus(log, screenFmt);
-		    break;
+			case TT_ORDER_STATUS:
+				traceOrderStatus(log, screenFmt);
+				break;
 
-		case TT_STOCK_LEVEL:
-		    traceStockLevel(log, screenFmt);
-		    break;
+			case TT_STOCK_LEVEL:
+				traceStockLevel(log, screenFmt);
+				break;
 
-		case TT_DELIVERY:
-		    traceDelivery(log, screenFmt);
-		    break;
+			case TT_DELIVERY:
+				traceDelivery(log, screenFmt);
+				break;
 
-		case TT_DELIVERY_BG:
-		    traceDeliveryBG(log, screenFmt);
-		    break;
+			case TT_DELIVERY_BG:
+				traceDeliveryBG(log, screenFmt);
+				break;
 
-		default:
-		    throw new Exception("Unknown transType " + transType);
-	    }
+			default:
+				throw new Exception("Unknown transType " + transType);
+			}
 
-	    for (int i = 0; i < 23; i++)
-	    {
-		if (screenSb[i].length() > 79)
-		    screenSb[i].setLength(79);
-		log.trace(screenSb[i].toString());
-	    }
+			for (int i = 0; i < 23; i++)
+			{
+				if (screenSb[i].length() > 79)
+					screenSb[i].setLength(79);
+				log.trace(screenSb[i].toString());
+			}
 
-	    log.trace("-------------------------------------------------------------------------------");
-	    log.trace("");
-	}
+			log.trace("-------------------------------------------------------------------------------");
+			log.trace("");
+		}
     }
 
     public String resultLine(long sessionStart)
     {
-	String  line;
+		String  line;
 
-	resultFmt.format("%d,%d,%d,%s,%d,%d,%d\n",
-		transEnd - sessionStart,
-		transEnd - transDue,
-		transEnd - transStart,
-		transTypeNames[transType],
-		(transRbk) ? 1 : 0,
-		(transType == TT_DELIVERY_BG) ? getSkippedDeliveries() : 0,
-		(transError == null) ? 0 : 1);
-	line = resultSB.toString();
-	resultSB.setLength(0);
-	return line;
+		resultFmt.format("%d,%d,%d,%s,%d,%d,%d\n",
+			transEnd - sessionStart,
+			transEnd - transDue,
+			transEnd - transStart,
+			transTypeNames[transType],
+			(transRbk) ? 1 : 0,
+			(transType == TT_DELIVERY_BG) ? getSkippedDeliveries() : 0,
+			(transError == null) ? 0 : 1);
+		line = resultSB.toString();
+		resultSB.setLength(0);
+		return line;
     }
 
     /* **********************************************************************
@@ -242,374 +242,374 @@ public class jTPCCTData
      * *********************************************************************/
     public void generateNewOrder(Logger log, jTPCCRandom rnd, long due)
     {
-	int     o_ol_cnt;
-	int     i = 0;
+		int     o_ol_cnt;
+		int     i = 0;
 
-	transType       = TT_NEW_ORDER;
-	transDue        = due;
-	transStart      = 0;
-	transEnd        = 0;
-	transRbk        = false;
-	transError      = null;
+		transType       = TT_NEW_ORDER;
+		transDue        = due;
+		transStart      = 0;
+		transEnd        = 0;
+		transRbk        = false;
+		transError      = null;
 
-	newOrder        = new NewOrderData();
-	payment         = null;
-	orderStatus     = null;
-	stockLevel      = null;
-	delivery        = null;
-	deliveryBG      = null;
+		newOrder        = new NewOrderData();
+		payment         = null;
+		orderStatus     = null;
+		stockLevel      = null;
+		delivery        = null;
+		deliveryBG      = null;
 
-	newOrder.w_id   = terminalWarehouse;    // 2.4.1.1
-	newOrder.d_id   = rnd.nextInt(1, 10);   // 2.4.1.2
-	newOrder.c_id   = rnd.getCustomerID();
-	o_ol_cnt        = rnd.nextInt(5, 15);   // 2.4.1.3
+		newOrder.w_id   = terminalWarehouse;    // 2.4.1.1
+		newOrder.d_id   = rnd.nextInt(1, 10);   // 2.4.1.2
+		newOrder.c_id   = rnd.getCustomerID();
+		o_ol_cnt        = rnd.nextInt(5, 15);   // 2.4.1.3
 
-	while (i < o_ol_cnt)                    // 2.4.1.5
-	{
-	    newOrder.ol_i_id[i]         = rnd.getItemID();
-	    if (rnd.nextInt(1, 100) <= 99)
-		newOrder.ol_supply_w_id[i] = terminalWarehouse;
-	    else
-		newOrder.ol_supply_w_id[i] = rnd.nextInt(1, numWarehouses);
-	    newOrder.ol_quantity[i] = rnd.nextInt(1, 10);
-	    i++;
-	}
+		while (i < o_ol_cnt)                    // 2.4.1.5
+		{
+			newOrder.ol_i_id[i]         = rnd.getItemID();
+			if (rnd.nextInt(1, 100) <= 99)
+				newOrder.ol_supply_w_id[i] = terminalWarehouse;
+			else
+				newOrder.ol_supply_w_id[i] = rnd.nextInt(1, numWarehouses);
+			newOrder.ol_quantity[i] = rnd.nextInt(1, 10);
+			i++;
+		}
 
-	if (rnd.nextInt(1, 100) == 1)           // 2.4.1.4
-	{
-	    newOrder.ol_i_id[i - 1] += (rnd.nextInt(1, 9) * 1000000);
-	    transRbk = true;
-	}
+		if (rnd.nextInt(1, 100) == 1)           // 2.4.1.4
+		{
+			newOrder.ol_i_id[i - 1] += (rnd.nextInt(1, 9) * 1000000);
+			transRbk = true;
+		}
 
-	// Zero out remainint lines
-	while (i < 15)
-	{
-	    newOrder.ol_i_id[i]         = 0;
-	    newOrder.ol_supply_w_id[i]  = 0;
-	    newOrder.ol_quantity[i]     = 0;
-	    i++;
-	}
+		// Zero out remainint lines
+		while (i < 15)
+		{
+			newOrder.ol_i_id[i]         = 0;
+			newOrder.ol_supply_w_id[i]  = 0;
+			newOrder.ol_quantity[i]     = 0;
+			i++;
+		}
     }
 
     private void executeNewOrder(Logger log, jTPCCConnection db)
 	throws Exception
     {
-	PreparedStatement       stmt;
-	PreparedStatement       insertOrderLineBatch;
-	PreparedStatement       updateStockBatch;
-	ResultSet               rs;
+		PreparedStatement       stmt;
+		PreparedStatement       insertOrderLineBatch;
+		PreparedStatement       updateStockBatch;
+		ResultSet               rs;
 
-	int                     o_id;
-	int                     o_all_local = 1;
-	long                    o_entry_d;
-	int                     ol_cnt;
-	double                  total_amount = 0.0;
+		int                     o_id;
+		int                     o_all_local = 1;
+		long                    o_entry_d;
+		int                     ol_cnt;
+		double                  total_amount = 0.0;
 
-	int                     ol_seq[] = new int[15];
+		int                     ol_seq[] = new int[15];
 
-	// The o_entry_d is now.
-	o_entry_d = System.currentTimeMillis();
-	newOrder.o_entry_d = new java.sql.Timestamp(o_entry_d).toString();
+		// The o_entry_d is now.
+		o_entry_d = System.currentTimeMillis();
+		newOrder.o_entry_d = new java.sql.Timestamp(o_entry_d).toString();
 
-	/*
-	 * When processing the order lines we must select the STOCK rows
-	 * FOR UPDATE. This is because we must perform business logic
-	 * (the juggling with the S_QUANTITY) here in the application
-	 * and cannot do that in an atomic UPDATE statement while getting
-	 * the original value back at the same time (UPDATE ... RETURNING
-	 * may not be vendor neutral). This can lead to possible deadlocks
-	 * if two transactions try to lock the same two stock rows in
-	 * opposite order. To avoid that we process the order lines in
-	 * the order of the order of ol_supply_w_id, ol_i_id.
-	 */
-	for (ol_cnt = 0; ol_cnt < 15 && newOrder.ol_i_id[ol_cnt] != 0; ol_cnt++)
-	{
-	    ol_seq[ol_cnt] = ol_cnt;
-
-	    // While looping we also determine o_all_local.
-	    if (newOrder.ol_supply_w_id[ol_cnt] != newOrder.w_id)
-		o_all_local = 0;
-	}
-
-	for (int x = 0; x < ol_cnt - 1; x++)
-	{
-	    for (int y = x + 1; y < ol_cnt; y++)
-	    {
-		if (newOrder.ol_supply_w_id[ol_seq[y]] < newOrder.ol_supply_w_id[ol_seq[x]])
+		/*
+		* When processing the order lines we must select the STOCK rows
+		* FOR UPDATE. This is because we must perform business logic
+		* (the juggling with the S_QUANTITY) here in the application
+		* and cannot do that in an atomic UPDATE statement while getting
+		* the original value back at the same time (UPDATE ... RETURNING
+		* may not be vendor neutral). This can lead to possible deadlocks
+		* if two transactions try to lock the same two stock rows in
+		* opposite order. To avoid that we process the order lines in
+		* the order of the order of ol_supply_w_id, ol_i_id.
+		*/
+		for (ol_cnt = 0; ol_cnt < 15 && newOrder.ol_i_id[ol_cnt] != 0; ol_cnt++)
 		{
-		    int tmp = ol_seq[x];
-		    ol_seq[x] = ol_seq[y];
-		    ol_seq[y] = tmp;
+			ol_seq[ol_cnt] = ol_cnt;
+
+			// While looping we also determine o_all_local.
+			if (newOrder.ol_supply_w_id[ol_cnt] != newOrder.w_id)
+			o_all_local = 0;
 		}
-		else if (newOrder.ol_supply_w_id[ol_seq[y]] == newOrder.ol_supply_w_id[ol_seq[x]] &&
-			 newOrder.ol_i_id[ol_seq[y]] < newOrder.ol_i_id[ol_seq[x]])
+
+		for (int x = 0; x < ol_cnt - 1; x++)
 		{
-		    int tmp = ol_seq[x];
-		    ol_seq[x] = ol_seq[y];
-		    ol_seq[y] = tmp;
+			for (int y = x + 1; y < ol_cnt; y++)
+			{
+			if (newOrder.ol_supply_w_id[ol_seq[y]] < newOrder.ol_supply_w_id[ol_seq[x]])
+			{
+				int tmp = ol_seq[x];
+				ol_seq[x] = ol_seq[y];
+				ol_seq[y] = tmp;
+			}
+			else if (newOrder.ol_supply_w_id[ol_seq[y]] == newOrder.ol_supply_w_id[ol_seq[x]] &&
+				newOrder.ol_i_id[ol_seq[y]] < newOrder.ol_i_id[ol_seq[x]])
+			{
+				int tmp = ol_seq[x];
+				ol_seq[x] = ol_seq[y];
+				ol_seq[y] = tmp;
+			}
+			}
 		}
-	    }
-	}
 
-	// The above also provided the output value for o_ol_cnt;
-	newOrder.o_ol_cnt = ol_cnt;
+		// The above also provided the output value for o_ol_cnt;
+		newOrder.o_ol_cnt = ol_cnt;
 
-	try {
-	    // Retrieve the required data from DISTRICT
-	    stmt = db.stmtNewOrderSelectDist;
-	    stmt.setInt(1, newOrder.w_id);
-	    stmt.setInt(2, newOrder.d_id);
-	    rs = stmt.executeQuery();
-	    if (!rs.next())
-	    {
-		rs.close();
-		throw new SQLException("District for" +
-			" W_ID=" + newOrder.w_id +
-			" D_ID=" + newOrder.d_id + " not found");
-	    }
-	    newOrder.d_tax      = rs.getDouble("d_tax");
-	    newOrder.o_id       = rs.getInt("d_next_o_id");
-	    o_id = newOrder.o_id;
-	    rs.close();
+		try {
+			// Retrieve the required data from DISTRICT
+			stmt = db.stmtNewOrderSelectDist;
+			stmt.setInt(1, newOrder.w_id);
+			stmt.setInt(2, newOrder.d_id);
+			rs = stmt.executeQuery();
+			if (!rs.next())
+			{
+				rs.close();
+				throw new SQLException("District for" +
+					" W_ID=" + newOrder.w_id +
+					" D_ID=" + newOrder.d_id + " not found");
+			}
+			newOrder.d_tax      = rs.getDouble("d_tax");
+			newOrder.o_id       = rs.getInt("d_next_o_id");
+			o_id = newOrder.o_id;
+			rs.close();
 
-	    // Retrieve the required data from CUSTOMER and WAREHOUSE
-	    stmt = db.stmtNewOrderSelectWhseCust;
-	    stmt.setInt(1, newOrder.w_id);
-	    stmt.setInt(2, newOrder.d_id);
-	    stmt.setInt(3, newOrder.c_id);
-	    rs = stmt.executeQuery();
-	    if (!rs.next())
-	    {
-		rs.close();
-		throw new SQLException("Warehouse or Customer for" +
-			" W_ID=" + newOrder.w_id +
-			" D_ID=" + newOrder.d_id +
-			" C_ID=" + newOrder.c_id + " not found");
-	    }
-	    newOrder.w_tax      = rs.getDouble("w_tax");
-	    newOrder.c_last     = rs.getString("c_last");
-	    newOrder.c_credit   = rs.getString("c_credit");
-	    newOrder.c_discount = rs.getDouble("c_discount");
-	    rs.close();
+			// Retrieve the required data from CUSTOMER and WAREHOUSE
+			stmt = db.stmtNewOrderSelectWhseCust;
+			stmt.setInt(1, newOrder.w_id);
+			stmt.setInt(2, newOrder.d_id);
+			stmt.setInt(3, newOrder.c_id);
+			rs = stmt.executeQuery();
+			if (!rs.next())
+			{
+				rs.close();
+				throw new SQLException("Warehouse or Customer for" +
+					" W_ID=" + newOrder.w_id +
+					" D_ID=" + newOrder.d_id +
+					" C_ID=" + newOrder.c_id + " not found");
+			}
+			newOrder.w_tax      = rs.getDouble("w_tax");
+			newOrder.c_last     = rs.getString("c_last");
+			newOrder.c_credit   = rs.getString("c_credit");
+			newOrder.c_discount = rs.getDouble("c_discount");
+			rs.close();
 
-	    // Update the DISTRICT bumping the D_NEXT_O_ID
-	    stmt = db.stmtNewOrderUpdateDist;
-	    stmt.setInt(1, newOrder.w_id);
-	    stmt.setInt(2, newOrder.d_id);
-	    stmt.executeUpdate();
+			// Update the DISTRICT bumping the D_NEXT_O_ID
+			stmt = db.stmtNewOrderUpdateDist;
+			stmt.setInt(1, newOrder.w_id);
+			stmt.setInt(2, newOrder.d_id);
+			stmt.executeUpdate();
 
-	    // Insert the ORDER row
-	    stmt = db.stmtNewOrderInsertOrder;
-	    stmt.setInt(1, o_id);
-	    stmt.setInt(2, newOrder.d_id);
-	    stmt.setInt(3, newOrder.w_id);
-	    stmt.setInt(4, newOrder.c_id);
-	    stmt.setTimestamp(5, new java.sql.Timestamp(System.currentTimeMillis()));
-	    stmt.setInt(6, ol_cnt);
-	    stmt.setInt(7, o_all_local);
-	    stmt.executeUpdate();
+			// Insert the ORDER row
+			stmt = db.stmtNewOrderInsertOrder;
+			stmt.setInt(1, o_id);
+			stmt.setInt(2, newOrder.d_id);
+			stmt.setInt(3, newOrder.w_id);
+			stmt.setInt(4, newOrder.c_id);
+			stmt.setTimestamp(5, new java.sql.Timestamp(System.currentTimeMillis()));
+			stmt.setInt(6, ol_cnt);
+			stmt.setInt(7, o_all_local);
+			stmt.executeUpdate();
 
-	    // Insert the NEW_ORDER row
-	    stmt = db.stmtNewOrderInsertNewOrder;
-	    stmt.setInt(1, o_id);
-	    stmt.setInt(2, newOrder.d_id);
-	    stmt.setInt(3, newOrder.w_id);
-	    stmt.executeUpdate();
+			// Insert the NEW_ORDER row
+			stmt = db.stmtNewOrderInsertNewOrder;
+			stmt.setInt(1, o_id);
+			stmt.setInt(2, newOrder.d_id);
+			stmt.setInt(3, newOrder.w_id);
+			stmt.executeUpdate();
 
-	    // Per ORDER_LINE
-	    insertOrderLineBatch = db.stmtNewOrderInsertOrderLine;
-	    updateStockBatch = db.stmtNewOrderUpdateStock;
-	    for (int i = 0; i < ol_cnt; i++)
-	    {
-		int ol_number = i + 1;
-		int seq = ol_seq[i];
-		String i_data;
+			// Per ORDER_LINE
+			insertOrderLineBatch = db.stmtNewOrderInsertOrderLine;
+			updateStockBatch = db.stmtNewOrderUpdateStock;
+			for (int i = 0; i < ol_cnt; i++)
+			{
+				int ol_number = i + 1;
+				int seq = ol_seq[i];
+				String i_data;
 
-		stmt = db.stmtNewOrderSelectItem;
-		stmt.setInt(1, newOrder.ol_i_id[seq]);
-		rs = stmt.executeQuery();
-		if (!rs.next())
-		{
-		    rs.close();
+				stmt = db.stmtNewOrderSelectItem;
+				stmt.setInt(1, newOrder.ol_i_id[seq]);
+				rs = stmt.executeQuery();
+				if (!rs.next())
+				{
+					rs.close();
 
-		    /*
-		     * 1% of NEW_ORDER transactions use an unused item
-		     * in the last line to simulate user entry errors.
-		     * Make sure this is precisely that case.
-		     */
-		    if (transRbk && (newOrder.ol_i_id[seq] < 1 ||
-				     newOrder.ol_i_id[seq] > 100000))
-		    {
-			/*
-			 * Clause 2.4.2.3 mandates that the entire
-			 * transaction profile up to here must be executed
-			 * before we can roll back, except for retrieving
-			 * the missing STOCK row and inserting this
-			 * ORDER_LINE row. Note that we haven't updated
-			 * STOCK rows or inserted any ORDER_LINE rows so
-			 * far, we only batched them up. So we must do
-			 * that now in order to satisfy 2.4.2.3.
-			 */
-			insertOrderLineBatch.executeBatch();
-			insertOrderLineBatch.clearBatch();
+					/*
+					* 1% of NEW_ORDER transactions use an unused item
+					* in the last line to simulate user entry errors.
+					* Make sure this is precisely that case.
+					*/
+					if (transRbk && (newOrder.ol_i_id[seq] < 1 ||
+							newOrder.ol_i_id[seq] > 100000))
+					{
+					/*
+					* Clause 2.4.2.3 mandates that the entire
+					* transaction profile up to here must be executed
+					* before we can roll back, except for retrieving
+					* the missing STOCK row and inserting this
+					* ORDER_LINE row. Note that we haven't updated
+					* STOCK rows or inserted any ORDER_LINE rows so
+					* far, we only batched them up. So we must do
+					* that now in order to satisfy 2.4.2.3.
+					*/
+						insertOrderLineBatch.executeBatch();
+						insertOrderLineBatch.clearBatch();
+						updateStockBatch.executeBatch();
+						updateStockBatch.clearBatch();
+
+						db.rollback();
+
+						newOrder.total_amount = total_amount;
+						newOrder.execution_status = new String(
+							"Item number is not valid");
+						return;
+					}
+
+					// This ITEM should have been there.
+					throw new Exception("ITEM " + newOrder.ol_i_id[seq] +
+							" not fount");
+				}
+				// Found ITEM
+				newOrder.i_name[seq] = rs.getString("i_name");
+				newOrder.i_price[seq] = rs.getDouble("i_price");
+				i_data = rs.getString("i_data");
+				rs.close();
+
+				// Select STOCK for update.
+				stmt = db.stmtNewOrderSelectStock;
+				stmt.setInt(1, newOrder.ol_supply_w_id[seq]);
+				stmt.setInt(2, newOrder.ol_i_id[seq]);
+				rs = stmt.executeQuery();
+				if (!rs.next())
+				{
+					throw new Exception("STOCK with" +
+						" S_W_ID=" + newOrder.ol_supply_w_id[seq] +
+						" S_I_ID=" + newOrder.ol_i_id[seq] +
+						" not fount");
+				}
+				newOrder.s_quantity[seq] = rs.getInt("s_quantity");
+				// Leave the ResultSet open ... we need it for the s_dist_NN.
+
+				newOrder.ol_amount[seq] = newOrder.i_price[seq] * newOrder.ol_quantity[seq];
+				if (i_data.contains("ORIGINAL") &&
+					rs.getString("s_data").contains("ORIGINAL"))
+					newOrder.brand_generic[seq] = new String("B");
+				else
+					newOrder.brand_generic[seq] = new String("G");
+
+				total_amount += newOrder.ol_amount[seq] *
+						(1.0 - newOrder.c_discount) *
+						(1.0 + newOrder.w_tax + newOrder.d_tax);
+
+				// Update the STOCK row.
+				if (newOrder.s_quantity[seq] >= newOrder.ol_quantity[seq] + 10)
+					updateStockBatch.setInt(1, newOrder.s_quantity[seq] -
+								newOrder.ol_quantity[seq]);
+				else
+					updateStockBatch.setInt(1, newOrder.s_quantity[seq] + 91);
+				updateStockBatch.setInt(2, newOrder.ol_quantity[seq]);
+				if (newOrder.ol_supply_w_id[seq] == newOrder.w_id)
+					updateStockBatch.setInt(3, 0);
+				else
+					updateStockBatch.setInt(3, 1);
+				updateStockBatch.setInt(4, newOrder.ol_supply_w_id[seq]);
+				updateStockBatch.setInt(5, newOrder.ol_i_id[seq]);
+				updateStockBatch.addBatch();
+
+				// Insert the ORDER_LINE row.
+				insertOrderLineBatch.setInt(1, o_id);
+				insertOrderLineBatch.setInt(2, newOrder.d_id);
+				insertOrderLineBatch.setInt(3, newOrder.w_id);
+				insertOrderLineBatch.setInt(4, ol_number);
+				insertOrderLineBatch.setInt(5, newOrder.ol_i_id[seq]);
+				insertOrderLineBatch.setInt(6, newOrder.ol_supply_w_id[seq]);
+				insertOrderLineBatch.setInt(7, newOrder.ol_quantity[seq]);
+				insertOrderLineBatch.setDouble(8, newOrder.ol_amount[seq]);
+				switch (newOrder.d_id)
+				{
+					case 1:
+					insertOrderLineBatch.setString(9, rs.getString("s_dist_01"));
+					break;
+					case 2:
+					insertOrderLineBatch.setString(9, rs.getString("s_dist_02"));
+					break;
+					case 3:
+					insertOrderLineBatch.setString(9, rs.getString("s_dist_03"));
+					break;
+					case 4:
+					insertOrderLineBatch.setString(9, rs.getString("s_dist_04"));
+					break;
+					case 5:
+					insertOrderLineBatch.setString(9, rs.getString("s_dist_05"));
+					break;
+					case 6:
+					insertOrderLineBatch.setString(9, rs.getString("s_dist_06"));
+					break;
+					case 7:
+					insertOrderLineBatch.setString(9, rs.getString("s_dist_07"));
+					break;
+					case 8:
+					insertOrderLineBatch.setString(9, rs.getString("s_dist_08"));
+					break;
+					case 9:
+					insertOrderLineBatch.setString(9, rs.getString("s_dist_09"));
+					break;
+					case 10:
+					insertOrderLineBatch.setString(9, rs.getString("s_dist_10"));
+					break;
+				}
+				insertOrderLineBatch.addBatch();
+			}
+			rs.close();
+
+			// All done ... execute the batches.
 			updateStockBatch.executeBatch();
 			updateStockBatch.clearBatch();
+			insertOrderLineBatch.executeBatch();
+			insertOrderLineBatch.clearBatch();
 
-			db.rollback();
-
+			newOrder.execution_status = new String("Order placed");
 			newOrder.total_amount = total_amount;
-			newOrder.execution_status = new String(
-				"Item number is not valid");
-			return;
-		    }
 
-		    // This ITEM should have been there.
-		    throw new Exception("ITEM " + newOrder.ol_i_id[seq] +
-					" not fount");
+			db.commit();
+
 		}
-		// Found ITEM
-		newOrder.i_name[seq] = rs.getString("i_name");
-		newOrder.i_price[seq] = rs.getDouble("i_price");
-		i_data = rs.getString("i_data");
-		rs.close();
-
-		// Select STOCK for update.
-		stmt = db.stmtNewOrderSelectStock;
-		stmt.setInt(1, newOrder.ol_supply_w_id[seq]);
-		stmt.setInt(2, newOrder.ol_i_id[seq]);
-		rs = stmt.executeQuery();
-		if (!rs.next())
+		catch (SQLException se)
 		{
-		    throw new Exception("STOCK with" +
-				" S_W_ID=" + newOrder.ol_supply_w_id[seq] +
-				" S_I_ID=" + newOrder.ol_i_id[seq] +
-				" not fount");
+			log.error("Unexpected SQLException in NEW_ORDER");
+			for (SQLException x = se; x != null; x = x.getNextException())
+				log.error(x.getMessage());
+			se.printStackTrace();
+
+			try
+			{
+				db.stmtNewOrderUpdateStock.clearBatch();
+				db.stmtNewOrderInsertOrderLine.clearBatch();
+				db.rollback();
+			}
+			catch (SQLException se2)
+			{
+				throw new Exception("Unexpected SQLException on rollback: " +
+						se2.getMessage());
+			}
 		}
-		newOrder.s_quantity[seq] = rs.getInt("s_quantity");
-		// Leave the ResultSet open ... we need it for the s_dist_NN.
-
-		newOrder.ol_amount[seq] = newOrder.i_price[seq] * newOrder.ol_quantity[seq];
-		if (i_data.contains("ORIGINAL") &&
-		    rs.getString("s_data").contains("ORIGINAL"))
-		    newOrder.brand_generic[seq] = new String("B");
-		else
-		    newOrder.brand_generic[seq] = new String("G");
-
-		total_amount += newOrder.ol_amount[seq] *
-				(1.0 - newOrder.c_discount) *
-				(1.0 + newOrder.w_tax + newOrder.d_tax);
-
-		// Update the STOCK row.
-		if (newOrder.s_quantity[seq] >= newOrder.ol_quantity[seq] + 10)
-		    updateStockBatch.setInt(1, newOrder.s_quantity[seq] -
-					       newOrder.ol_quantity[seq]);
-		else
-		    updateStockBatch.setInt(1, newOrder.s_quantity[seq] + 91);
-		updateStockBatch.setInt(2, newOrder.ol_quantity[seq]);
-		if (newOrder.ol_supply_w_id[seq] == newOrder.w_id)
-		    updateStockBatch.setInt(3, 0);
-		else
-		    updateStockBatch.setInt(3, 1);
-		updateStockBatch.setInt(4, newOrder.ol_supply_w_id[seq]);
-		updateStockBatch.setInt(5, newOrder.ol_i_id[seq]);
-		updateStockBatch.addBatch();
-
-		// Insert the ORDER_LINE row.
-		insertOrderLineBatch.setInt(1, o_id);
-		insertOrderLineBatch.setInt(2, newOrder.d_id);
-		insertOrderLineBatch.setInt(3, newOrder.w_id);
-		insertOrderLineBatch.setInt(4, ol_number);
-		insertOrderLineBatch.setInt(5, newOrder.ol_i_id[seq]);
-		insertOrderLineBatch.setInt(6, newOrder.ol_supply_w_id[seq]);
-		insertOrderLineBatch.setInt(7, newOrder.ol_quantity[seq]);
-		insertOrderLineBatch.setDouble(8, newOrder.ol_amount[seq]);
-		switch (newOrder.d_id)
+		catch (Exception e)
 		{
-		    case 1:
-			insertOrderLineBatch.setString(9, rs.getString("s_dist_01"));
-			break;
-		    case 2:
-			insertOrderLineBatch.setString(9, rs.getString("s_dist_02"));
-			break;
-		    case 3:
-			insertOrderLineBatch.setString(9, rs.getString("s_dist_03"));
-			break;
-		    case 4:
-			insertOrderLineBatch.setString(9, rs.getString("s_dist_04"));
-			break;
-		    case 5:
-			insertOrderLineBatch.setString(9, rs.getString("s_dist_05"));
-			break;
-		    case 6:
-			insertOrderLineBatch.setString(9, rs.getString("s_dist_06"));
-			break;
-		    case 7:
-			insertOrderLineBatch.setString(9, rs.getString("s_dist_07"));
-			break;
-		    case 8:
-			insertOrderLineBatch.setString(9, rs.getString("s_dist_08"));
-			break;
-		    case 9:
-			insertOrderLineBatch.setString(9, rs.getString("s_dist_09"));
-			break;
-		    case 10:
-			insertOrderLineBatch.setString(9, rs.getString("s_dist_10"));
-			break;
+			try
+			{
+				db.stmtNewOrderUpdateStock.clearBatch();
+				db.stmtNewOrderInsertOrderLine.clearBatch();
+				db.rollback();
+			}
+			catch (SQLException se2)
+			{
+				throw new Exception("Unexpected SQLException on rollback: " +
+						se2.getMessage());
+			}
+			throw e;
 		}
-		insertOrderLineBatch.addBatch();
-	    }
-	    rs.close();
-
-	    // All done ... execute the batches.
-	    updateStockBatch.executeBatch();
-	    updateStockBatch.clearBatch();
-	    insertOrderLineBatch.executeBatch();
-	    insertOrderLineBatch.clearBatch();
-
-	    newOrder.execution_status = new String("Order placed");
-	    newOrder.total_amount = total_amount;
-
-	    db.commit();
-
-	}
-	catch (SQLException se)
-	{
-	    log.error("Unexpected SQLException in NEW_ORDER");
-	    for (SQLException x = se; x != null; x = x.getNextException())
-		log.error(x.getMessage());
-	    se.printStackTrace();
-
-	    try
-	    {
-		db.stmtNewOrderUpdateStock.clearBatch();
-		db.stmtNewOrderInsertOrderLine.clearBatch();
-		db.rollback();
-	    }
-	    catch (SQLException se2)
-	    {
-		throw new Exception("Unexpected SQLException on rollback: " +
-				se2.getMessage());
-	    }
-	}
-	catch (Exception e)
-	{
-	    try
-	    {
-		db.stmtNewOrderUpdateStock.clearBatch();
-		db.stmtNewOrderInsertOrderLine.clearBatch();
-		db.rollback();
-	    }
-	    catch (SQLException se2)
-	    {
-		throw new Exception("Unexpected SQLException on rollback: " +
-				se2.getMessage());
-	    }
-	    throw e;
-	}
-	/*
-	log.info("Reached the point of creating one NEW_ORDER W_ID "+newOrder.w_id+" D_ID "+newOrder.d_id+" C_ID "+newOrder.c_id);
-	System.exit(0);
-	*/
+		/*
+		log.info("Reached the point of creating one NEW_ORDER W_ID "+newOrder.w_id+" D_ID "+newOrder.d_id+" C_ID "+newOrder.c_id);
+		System.exit(0);
+		*/
     }
 
     private void traceNewOrder(Logger log, Formatter fmt[])

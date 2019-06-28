@@ -41,15 +41,15 @@ public class jTPCCRandom
      */
     jTPCCRandom()
     {
-	if (initialized)
-	    throw new IllegalStateException("Global instance exists");
+        if (initialized)
+            throw new IllegalStateException("Global instance exists");
 
-	this.random = new Random(System.nanoTime());
-	jTPCCRandom.nURandCLast = nextLong(0, 255);
-	jTPCCRandom.nURandCC_ID = nextLong(0, 1023);
-	jTPCCRandom.nURandCI_ID = nextLong(0, 8191);
+        this.random = new Random(System.nanoTime());
+        jTPCCRandom.nURandCLast = nextLong(0, 255);
+        jTPCCRandom.nURandCC_ID = nextLong(0, 1023);
+        jTPCCRandom.nURandCI_ID = nextLong(0, 8191);
 
-	initialized = true;
+        initialized = true;
     }
 
     /*
@@ -66,33 +66,33 @@ public class jTPCCRandom
      */
     jTPCCRandom(long CLoad)
     {
-	long delta;
+        long delta;
 
-	if (initialized)
-	    throw new IllegalStateException("Global instance exists");
+        if (initialized)
+            throw new IllegalStateException("Global instance exists");
 
-	this.random = new Random(System.nanoTime());
-	jTPCCRandom.nURandCC_ID = nextLong(0, 1023);
-	jTPCCRandom.nURandCI_ID = nextLong(0, 8191);
+        this.random = new Random(System.nanoTime());
+        jTPCCRandom.nURandCC_ID = nextLong(0, 1023);
+        jTPCCRandom.nURandCI_ID = nextLong(0, 8191);
 
-	do
-	{
-	    jTPCCRandom.nURandCLast = nextLong(0, 255);
+        do
+        {
+            jTPCCRandom.nURandCLast = nextLong(0, 255);
 
-	    delta = Math.abs(jTPCCRandom.nURandCLast - CLoad);
-	    if (delta == 96 || delta == 112)
-		continue;
-	    if (delta < 65 || delta > 119)
-		continue;
-	    break;
-	} while(true);
+            delta = Math.abs(jTPCCRandom.nURandCLast - CLoad);
+            if (delta == 96 || delta == 112)
+                continue;
+            if (delta < 65 || delta > 119)
+                continue;
+            break;
+        } while(true);
 
-	initialized = true;
+        initialized = true;
     }
 
     private jTPCCRandom(jTPCCRandom parent)
     {
-	this.random = new Random(System.nanoTime());
+	    this.random = new Random(System.nanoTime());
     }
 
     /*
@@ -107,7 +107,7 @@ public class jTPCCRandom
      */
     jTPCCRandom newRandom()
     {
-	return new jTPCCRandom(this);
+	    return new jTPCCRandom(this);
     }
 
 
@@ -118,7 +118,7 @@ public class jTPCCRandom
      */
     public long nextLong(long x, long y)
     {
-	return (long)(random.nextDouble() * (y - x + 1) + x);
+	    return (long)(random.nextDouble() * (y - x + 1) + x);
     }
 
     /*
@@ -128,7 +128,7 @@ public class jTPCCRandom
      */
     public int nextInt(int x, int y)
     {
-	return (int)(random.nextDouble() * (y - x + 1) + x);
+	    return (int)(random.nextDouble() * (y - x + 1) + x);
     }
 
     /*
@@ -147,21 +147,21 @@ public class jTPCCRandom
      */
     public String getAString(long x, long y)
     {
-	String result = new String();
-	long len = nextLong(x, y);
-	long have = 1;
+        String result = new String();
+        long len = nextLong(x, y);
+        long have = 1;
 
-	if (y <= 0)
-	    return result;
+        if (y <= 0)
+            return result;
 
-	result += aStringChars[(int)nextLong(0, 51)];
-	while (have < len)
-	{
-	    result += aStringChars[(int)nextLong(0, 61)];
-	    have++;
-	}
+        result += aStringChars[(int)nextLong(0, 51)];
+        while (have < len)
+        {
+            result += aStringChars[(int)nextLong(0, 61)];
+            have++;
+        }
 
-	return result;
+        return result;
     }
 
     /*
@@ -171,17 +171,17 @@ public class jTPCCRandom
      */
     public String getNString(long x, long y)
     {
-	String result = new String();
-	long len = nextLong(x, y);
-	long have = 0;
+        String result = new String();
+        long len = nextLong(x, y);
+        long have = 0;
 
-	while (have < len)
-	{
-	    result += (char)(nextLong((long)'0', (long)'9'));
-	    have++;
-	}
+        while (have < len)
+        {
+            result += (char)(nextLong((long)'0', (long)'9'));
+            have++;
+        }
 
-	return result;
+        return result;
     }
 
     /*
@@ -191,8 +191,8 @@ public class jTPCCRandom
      */
     public int getItemID()
     {
-	return (int)((((nextLong(0, 8191) | nextLong(1, 100000)) + nURandCI_ID)
-	       % 100000) + 1);
+        return (int)((((nextLong(0, 8191) | nextLong(1, 100000)) + nURandCI_ID)
+            % 100000) + 1);
     }
 
     /*
@@ -202,8 +202,8 @@ public class jTPCCRandom
      */
     public int getCustomerID()
     {
-	return (int)((((nextLong(0, 1023) | nextLong(1, 3000)) + nURandCC_ID)
-	       % 3000) + 1);
+        return (int)((((nextLong(0, 1023) | nextLong(1, 3000)) + nURandCC_ID)
+            % 3000) + 1);
     }
 
     /*
@@ -213,15 +213,15 @@ public class jTPCCRandom
      */
     public String getCLast(int num)
     {
-	String result = new String();
+        String result = new String();
 
-	for (int i = 0; i < 3; i++)
-	{
-	    result = cLastTokens[num % 10] + result;
-	    num /= 10;
-	}
+        for (int i = 0; i < 3; i++)
+        {
+            result = cLastTokens[num % 10] + result;
+            num /= 10;
+        }
 
-	return result;
+        return result;
     }
 
     /*
@@ -231,19 +231,19 @@ public class jTPCCRandom
      */
     public String getCLast()
     {
-	long num;
-	num = (((nextLong(0, 255) | nextLong(0, 999)) + nURandCLast) % 1000);
-	return getCLast((int)num);
+        long num;
+        num = (((nextLong(0, 255) | nextLong(0, 999)) + nURandCLast) % 1000);
+        return getCLast((int)num);
     }
 
     public String getState()
     {
-	String result = new String();
+        String result = new String();
 
-	result += (char)nextInt((int)'A', (int)'Z');
-	result += (char)nextInt((int)'A', (int)'Z');
+        result += (char)nextInt((int)'A', (int)'Z');
+        result += (char)nextInt((int)'A', (int)'Z');
 
-	return result;
+        return result;
     }
 
     /*
@@ -251,16 +251,16 @@ public class jTPCCRandom
      */
     public long getNURandCLast()
     {
-	return nURandCLast;
+	    return nURandCLast;
     }
 
     public long getNURandCC_ID()
     {
-	return nURandCC_ID;
+	    return nURandCC_ID;
     }
 
     public long getNURandCI_ID()
     {
-	return nURandCI_ID;
+	    return nURandCI_ID;
     }
 } // end jTPCCRandom
