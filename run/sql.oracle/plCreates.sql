@@ -64,7 +64,7 @@ FOR i IN 1..in_ol_cnt LOOP
     IF var_stock_quantity >= in_ol_quantity(i) + 10 THEN
         var_stock_quantity := var_stock_quantity - in_ol_quantity(i);
     ELSE
-        var_stock_quantity := var_stock_quantity + 91;
+        var_stock_quantity := var_stock_quantity + 91 - in_ol_quantity(i);
     END IF;
     IF in_ol_supply_wid(i) = in_w_id THEN
         var_update_stock_3 := 0;
