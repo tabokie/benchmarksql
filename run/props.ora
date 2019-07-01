@@ -27,11 +27,11 @@ pl_mode=0
 terminalWarehouseFixed=true
 
 //The following five values must add up to 100
-newOrderWeight=45
-paymentWeight=43
-orderStatusWeight=4
-deliveryWeight=4
-stockLevelWeight=4
+// newOrderWeight=45
+// paymentWeight=43
+// orderStatusWeight=4
+// deliveryWeight=4
+// stockLevelWeight=4
 
 // Directory name to create for collecting detailed result data.
 // Comment this out to suppress.
