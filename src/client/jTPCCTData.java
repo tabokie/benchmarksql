@@ -1445,7 +1445,7 @@ log.trace("w_zip=" + payment.w_zip + " d_zip=" + payment.d_zip);
                 ol_idx++;
             }
 
-            db.rollback();
+            db.commit();
         }
         catch (SQLException se)
         {
@@ -1601,7 +1601,7 @@ log.trace("w_zip=" + payment.w_zip + " d_zip=" + payment.d_zip);
             stockLevel.low_stock = rs.getInt("low_stock");
             rs.close();
 
-            db.rollback();
+            db.commit();
         }
         catch (SQLException se)
         {

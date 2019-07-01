@@ -11,6 +11,7 @@ runInfo <- read.csv("data/runInfo.csv", head=TRUE)
 # Determine the grouping interval in seconds based on the
 # run duration.
 # ----
+xmin <- @SKIP@
 xmax <- runInfo$runMins
 for (interval in c(1, 2, 5, 10, 20, 60, 120, 300, 600)) {
     if ((xmax * 60) / interval <= 1000) {
@@ -18,12 +19,14 @@ for (interval in c(1, 2, 5, 10, 20, 60, 120, 300, 600)) {
     }
 }
 idiv <- interval * 1000.0
+skip <- xmin * 60000
 
 # ----
 # Read the recorded IO data for the network devide
 # and aggregate it for the desired interval.
 # ----
 rawData <- read.csv("data/@DEVICE@.csv", head=TRUE)
+rawData <- rawData[rawData$elapsed >= skip, ]
 aggRecv <- setNames(aggregate(rawData$rxkbps,
 			      list(elapsed=trunc(rawData$elapsed / idiv) * idiv), mean),
 		    c('elapsed', 'rxkbps'))
@@ -52,7 +55,7 @@ if (ymax < (ymax_rx * 1.2) || ymax < (ymax_tx * 1.2)) {
 # ----
 # Start the output image.
 # ----
-png("@DEVICE@_kbps.png", width=@WIDTH@, height=@HEIGHT@)
+svg("@DEVICE@_kbps.svg", width=@WIDTH@, height=@HEIGHT@, pointsize=@POINTSIZE@)
 par(mar=c(4,4,4,4), xaxp=c(10,200,19))
 
 # ----
@@ -64,7 +67,7 @@ plot (
 	axes=TRUE,
 	xlab="Elapsed Minutes",
 	ylab="Kilobytes per Second",
-	xlim=c(0, xmax),
+	xlim=c(xmin, xmax),
 	ylim=c(0, ymax)
 )
 
@@ -78,7 +81,7 @@ plot (
 	axes=FALSE,
 	xlab="",
 	ylab="",
-	xlim=c(0, xmax),
+	xlim=c(xmin, xmax),
 	ylim=c(0, ymax)
 )
 

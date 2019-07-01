@@ -16,6 +16,7 @@ import java.util.*;
 import java.util.regex.Pattern;
 import java.text.*;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 
 public class jTPCC implements jTPCCConfig
@@ -35,6 +36,7 @@ public class jTPCC implements jTPCCConfig
     private long terminalsStarted = 0, sessionCount = 0, transactionCount = 0;
     private Object counterLock = new Object();
     private ReentrantLock statusLock = new ReentrantLock();
+    private AtomicBoolean warmed = new AtomicBoolean(false);
 
     private long newOrderCounter = 0, sessionStartTimestamp, sessionEndTimestamp, sessionNextTimestamp=0, sessionNextKounter=0;
     private long sessionWarmedTargetTime;
@@ -62,6 +64,14 @@ public class jTPCC implements jTPCCConfig
         String prop =  p.getProperty(pName);
         log.info("Term-00, " + pName + "=" + prop);
         return(prop);
+    }
+
+    public String getProp (Properties p, String pName, String def) {
+        String prop = p.getProperty(pName);
+        if (prop == null)
+            prop = def;
+        log.info("Term-00, " + pName + "=" + prop);
+        return (prop);
     }
 
     public jTPCC()
@@ -115,15 +125,15 @@ public class jTPCC implements jTPCCConfig
         String  limPerMin           = getProp(ini,"limitTxnsPerMin");
         String  iTermWhseFixed          = getProp(ini,"terminalWarehouseFixed");
         log.info("Term-00, ");
-        String  iNewOrderWeight     = getProp(ini,"newOrderWeight");
-        String  iPaymentWeight      = getProp(ini,"paymentWeight");
-        String  iOrderStatusWeight  = getProp(ini,"orderStatusWeight");
-        String  iDeliveryWeight     = getProp(ini,"deliveryWeight");
-        String  iStockLevelWeight   = getProp(ini,"stockLevelWeight");
+        String  iNewOrderWeight     = getProp(ini,"newOrderWeight", "43.47826");
+        String  iPaymentWeight      = getProp(ini,"paymentWeight", "43.47826");
+        String  iOrderStatusWeight  = getProp(ini,"orderStatusWeight", "4.347827");
+        String  iDeliveryWeight     = getProp(ini,"deliveryWeight", "4.347826");
+        String  iStockLevelWeight   = getProp(ini,"stockLevelWeight", "4.347827");
 
         log.info("Term-00, ");
         String  resultDirectory     = getProp(ini, "resultDirectory");
-        String	osCollectorScript   = getProp(ini, "osCollectorScript");
+        String  osCollectorScript   = getProp(ini, "osCollectorScript");
 
         log.info("Term-00, ");
 
@@ -288,7 +298,8 @@ public class jTPCC implements jTPCCConfig
                 int sourceBegin = 0;
                 int sourceSize = -1;
                 long warmupTimeMillis = 0;
-                int newOrderWeightValue = -1, paymentWeightValue = -1, orderStatusWeightValue = -1, deliveryWeightValue = -1, stockLevelWeightValue = -1;
+                double newOrderWeightValue = -1, paymentWeightValue = -1, orderStatusWeightValue = -1, deliveryWeightValue = -1, stockLevelWeightValue = -1;
+ 
                 long executionTimeMillis = -1;
                 boolean terminalWarehouseFixed = true;
                 long CLoad;
@@ -440,7 +451,7 @@ public class jTPCC implements jTPCCConfig
                     throw new Exception();
                 }
 
-                warmupTimeMillis = (long)(Double.parseDouble(iWarmupTime)) * 60000;
+                warmupTimeMillis = (long)(Double.parseDouble(iWarmupTime) * 60000);
 
                 plMode = Boolean.parseBoolean(iPlMode);
 
@@ -477,11 +488,11 @@ public class jTPCC implements jTPCCConfig
 
                 try
                 {
-                    newOrderWeightValue = Integer.parseInt(iNewOrderWeight);
-                    paymentWeightValue = Integer.parseInt(iPaymentWeight);
-                    orderStatusWeightValue = Integer.parseInt(iOrderStatusWeight);
-                    deliveryWeightValue = Integer.parseInt(iDeliveryWeight);
-                    stockLevelWeightValue = Integer.parseInt(iStockLevelWeight);
+                    newOrderWeightValue = Double.parseDouble(iNewOrderWeight);
+                    paymentWeightValue = Double.parseDouble(iPaymentWeight);
+                    orderStatusWeightValue = Double.parseDouble(iOrderStatusWeight);
+                    deliveryWeightValue = Double.parseDouble(iDeliveryWeight);
+                    stockLevelWeightValue = Double.parseDouble(iStockLevelWeight);
 
                     if(newOrderWeightValue < 0 ||paymentWeightValue < 0 || orderStatusWeightValue < 0 || deliveryWeightValue < 0 || stockLevelWeightValue < 0)
                         throw new NumberFormatException();
@@ -507,7 +518,8 @@ public class jTPCC implements jTPCCConfig
                 else
                     printMessage("Creating " + numTerminals + " terminal(s) with " + (executionTimeMillis/60000) + " minute(s) of execution...");
                 printMessage("Warm up time is " + (warmupTimeMillis/60000) + " minute(s)");
-                    if (terminalWarehouseFixed)
+
+                if (terminalWarehouseFixed)
                     printMessage("Terminal Warehouse is fixed");
                 else
                     printMessage("Terminal Warehouse is NOT fixed");
@@ -583,6 +595,7 @@ public class jTPCC implements jTPCCConfig
                     sessionStartTimestamp = System.currentTimeMillis();
                     sessionNextTimestamp = sessionStartTimestamp;
                     sessionWarmedTargetTime += sessionStartTimestamp;
+
                     if(sessionEndTargetTime != -1)
                         sessionEndTargetTime += sessionStartTimestamp;
 
@@ -715,33 +728,53 @@ public class jTPCC implements jTPCCConfig
         return current > sessionWarmedTargetTime;
     }
 
+    private long elapsedTime(long current) {
+        if (warmed.get()) {
+            return current - sessionWarmedTargetTime;
+        } else {
+            return current - sessionStartTimestamp;
+        }
+    }
+
     public void signalTerminalEndedTransactionBulk(int transaction, int newOrder) {
         long current = System.currentTimeMillis();
-        if (sessionWarmed(current)) {
-            synchronized (counterLock) {
-                transactionCount += transaction;
-                fastNewOrderCounter += newOrder;
+        synchronized (counterLock) {
+            if (!warmed.get() && sessionWarmed(current)) {
+                System.out.println("\nSession warmed");
+                warmed.set(true);
+                transactionCount = 0;
+                fastNewOrderCounter = 0;
+                sessionNextKounter = 0;
             }
-            if (sessionShouldEnd(current)) {
-                signalTerminalsRequestEnd(true);
-            }
-            updateStatusLine();
+            transactionCount += transaction;
+            fastNewOrderCounter += newOrder;
         }
+
+        if (sessionShouldEnd(current)) {
+            signalTerminalsRequestEnd(true);
+        }
+        updateStatusLine();
     }
 
     public void signalTerminalEndedTransaction(String terminalName, String transactionType, long executionTime, String comment, int newOrder)
     {
         long current = System.currentTimeMillis();
-        if (sessionWarmed(current)) {
-            synchronized (counterLock) {
-                transactionCount ++;
-                fastNewOrderCounter += newOrder;
+        synchronized (counterLock) {
+            if (!warmed.get() && sessionWarmed(current)) {
+                System.out.println("\nSession warmed");
+                warmed.set(true);
+                transactionCount = 0;
+                fastNewOrderCounter = 0;
+                sessionNextKounter = 0;
             }
-            if (sessionShouldEnd(current)) {
-                signalTerminalsRequestEnd(true);
-            }
-            updateStatusLine();
+            transactionCount += 1;
+            fastNewOrderCounter += newOrder;
         }
+
+        if (sessionShouldEnd(current)) {
+            signalTerminalsRequestEnd(true);
+        }
+        updateStatusLine();
     }
 
     public jTPCCRandom getRnd()
@@ -770,8 +803,8 @@ public class jTPCC implements jTPCCConfig
         long currTimeMillis = System.currentTimeMillis();
         long freeMem = Runtime.getRuntime().freeMemory() / (1024*1024);
         long totalMem = Runtime.getRuntime().totalMemory() / (1024*1024);
-        double tpmC = (6000000*fastNewOrderCounter/(currTimeMillis - sessionStartTimestamp))/100.0;
-        double tpmTotal = (6000000*transactionCount/(currTimeMillis - sessionStartTimestamp))/100.0;
+        double tpmC = (6000000*fastNewOrderCounter/(elapsedTime(currTimeMillis)))/100.0;
+        double tpmTotal = (6000000*transactionCount/(elapsedTime(currTimeMillis)))/100.0;
 
         System.out.println("");
         log.info("Term-00, ");
@@ -812,6 +845,7 @@ public class jTPCC implements jTPCCConfig
 
     private void updateStatusLine()
     {
+        
         long currTimeMillis = System.currentTimeMillis();
 
         if(currTimeMillis > sessionNextTimestamp)
@@ -819,8 +853,8 @@ public class jTPCC implements jTPCCConfig
             if (statusLock.tryLock()) {
                 StringBuilder informativeText = new StringBuilder("");
                 Formatter fmt = new Formatter(informativeText);
-                double tpmC = (6000000*fastNewOrderCounter/(currTimeMillis - sessionStartTimestamp))/100.0;
-                double tpmTotal = (6000000*transactionCount/(currTimeMillis - sessionStartTimestamp))/100.0;
+                double tpmC = (6000000*fastNewOrderCounter/elapsedTime(currTimeMillis))/100.0;
+                double tpmTotal = (6000000*transactionCount/elapsedTime(currTimeMillis))/100.0;
 
                 sessionNextTimestamp += 1000;  /* update this every seconds */
 

@@ -6,8 +6,11 @@ CHANGE LOG:
 
 Local Version:
 --------------------------------------
-  +  Use Oracle PL/SQL for large transaction
+  +  Use Oracle PL/SQL for transaction (on-going)
   +  Add terminal range config to better support multi-driver bench
+  +  Fix minor inconsistencies w.r.t. official tpc-c standard
+  +  Update sql script for tablespace tuning
+  +  Enhanced report generating
   +  Fix tons of format issues
 
 Version 5.0 lussman & jannicash:
