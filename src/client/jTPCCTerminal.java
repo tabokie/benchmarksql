@@ -19,6 +19,8 @@ public class jTPCCTerminal implements jTPCCConfig, Runnable
 {
     private static org.apache.log4j.Logger log = Logger.getLogger(jTPCCTerminal.class);
 
+	private boolean bulkReportMode = true;
+
     private String terminalName;
     private Connection conn = null;
     private Statement stmt = null;
@@ -130,6 +132,10 @@ public class jTPCCTerminal implements jTPCCConfig, Runnable
 			printMessage("Executing " + numTransactions + " transactions...");
 		else
 			printMessage("Executing for a limited time...");
+
+		boolean reported = false;
+		int transactionCount = 0;
+		int newOrderCount = 0;
 
 		for(int i = 0; (i < numTransactions || numTransactions == -1) && !stopRunning; i++)
 		{
@@ -287,20 +293,38 @@ public class jTPCCTerminal implements jTPCCConfig, Runnable
 				}
 				transactionTypeName = "New-Order";
 				newOrderCounter++;
-				newOrder = 1;
+				if (bulkReportMode) {
+					newOrderCount ++;
+				} else {
+					newOrder = 1;	
+				}
+			}
+
+			if (bulkReportMode) {
+				transactionCount ++;
 			}
 
 			long transactionEnd = System.currentTimeMillis();
 
-			if(!transactionTypeName.equals("Delivery"))
-			{
-				parent.signalTerminalEndedTransaction(this.terminalName, transactionTypeName, transactionEnd - transactionStart, null, newOrder);
+			if (bulkReportMode) {
+				if (reported) reported = false;
+				if (transactionCount > 100) {
+					parent.signalTerminalEndedTransactionBulk(transactionCount, newOrderCount);
+					reported = true;
+					transactionCount = 0;
+					newOrderCount = 0;
+				}
+			} else {
+				if(!transactionTypeName.equals("Delivery"))
+				{
+					parent.signalTerminalEndedTransaction(this.terminalName, transactionTypeName, transactionEnd - transactionStart, null, newOrder);
+				}
+				else
+				{
+					parent.signalTerminalEndedTransaction(this.terminalName, transactionTypeName, transactionEnd - transactionStart, (skippedDeliveries == 0 ? "None" : "" + skippedDeliveries + " delivery(ies) skipped."), newOrder);
+				}	
 			}
-			else
-			{
-				parent.signalTerminalEndedTransaction(this.terminalName, transactionTypeName, transactionEnd - transactionStart, (skippedDeliveries == 0 ? "None" : "" + skippedDeliveries + " delivery(ies) skipped."), newOrder);
-			}
-
+			
 			if(limPerMin_Terminal>0){
 				long elapse = transactionEnd-transactionStart;
 				long timePerTx = 60000/limPerMin_Terminal;
@@ -315,6 +339,9 @@ public class jTPCCTerminal implements jTPCCConfig, Runnable
 				}
 			}
 			if(stopRunningSignal) stopRunning = true;
+		}
+		if (!reported) {
+			parent.signalTerminalEndedTransactionBulk(transactionCount, newOrderCount);
 		}
     }
 
