@@ -15,6 +15,7 @@ import java.sql.*;
 import java.util.*;
 import java.util.regex.Pattern;
 import java.text.*;
+import java.util.concurrent.locks.ReentrantLock;
 
 
 public class jTPCC implements jTPCCConfig
@@ -33,9 +34,12 @@ public class jTPCC implements jTPCCConfig
     private boolean terminalsBlockingExit = false;
     private long terminalsStarted = 0, sessionCount = 0, transactionCount = 0;
     private Object counterLock = new Object();
+    private ReentrantLock statusLock = new ReentrantLock();
 
     private long newOrderCounter = 0, sessionStartTimestamp, sessionEndTimestamp, sessionNextTimestamp=0, sessionNextKounter=0;
-    private long sessionEndTargetTime = -1, fastNewOrderCounter, recentTpmC=0, recentTpmTotal=0;
+    private long sessionWarmedTargetTime;
+    private long sessionStartTargetTime = -1, sessionEndTargetTime = -1;
+    private long fastNewOrderCounter, recentTpmC=0, recentTpmTotal=0;
     private boolean signalTerminalsRequestEndSent = false, databaseDriverLoaded = false;
 
     private FileOutputStream fileOutputStream;
@@ -98,12 +102,14 @@ public class jTPCC implements jTPCCConfig
         String  iWarehouses         = getProp(ini,"warehouses");
         String  iTerminals          = getProp(ini,"terminals");
 
-        String  iTargetBegin        = getProp(ini,"target_begin");
-        String  iTargetSize         = getProp(ini,"target_size");
-        String  iSourceBegin        = getProp(ini,"source_begin");
-        String  iSourceSize         = getProp(ini,"source_size");
+        String  iTargetBegin        = getProp(ini,"targetBegin");
+        String  iTargetSize         = getProp(ini,"targetSize");
+        String  iSourceBegin        = getProp(ini,"sourceBegin");
+        String  iSourceSize         = getProp(ini,"sourceSize");
 
-        String  iPlMode             = getProp(ini, "pl_mode");
+        String  iWarmupTime         = getProp(ini,"warmupTime");
+
+        String  iPlMode             = getProp(ini, "plMode");
 
         String  iRunTxnsPerTerminal =  ini.getProperty("runTxnsPerTerminal");
         String iRunMins  =  ini.getProperty("runMins");
@@ -289,7 +295,9 @@ public class jTPCC implements jTPCCConfig
                 int targetSize = -1;
                 int sourceBegin = 0;
                 int sourceSize = -1;
+                long warmupTimeMillis = 0;
                 double newOrderWeightValue = -1, paymentWeightValue = -1, orderStatusWeightValue = -1, deliveryWeightValue = -1, stockLevelWeightValue = -1;
+ 
                 long executionTimeMillis = -1;
                 boolean terminalWarehouseFixed = true;
                 long CLoad;
@@ -441,17 +449,9 @@ public class jTPCC implements jTPCCConfig
                     throw new Exception();
                 }
 
-                try
-                {
-                    if (Integer.parseInt(iPlMode) != 0) {
-                        plMode = true;
-                    }
-                }
-                catch(NumberFormatException e1)
-                {
-                    errorMessage("Invalid pl mode");
-                    throw new Exception();
-                }
+                warmupTimeMillis = (long)(Double.parseDouble(iWarmupTime)) * 60000;
+
+                plMode = Boolean.parseBoolean(iPlMode);
 
                 if(Long.parseLong(iRunMins) != 0 && Integer.parseInt(iRunTxnsPerTerminal) == 0)
                 {
@@ -515,6 +515,8 @@ public class jTPCC implements jTPCCConfig
                     printMessage("Creating " + numTerminals + " terminal(s) with " + transactionsPerTerminal + " transaction(s) per terminal...");
                 else
                     printMessage("Creating " + numTerminals + " terminal(s) with " + (executionTimeMillis/60000) + " minute(s) of execution...");
+                printMessage("Warm up time is " + (warmupTimeMillis/60000) + " minute(s)");
+
                 if (terminalWarehouseFixed)
                     printMessage("Terminal Warehouse is fixed");
                 else
@@ -567,7 +569,8 @@ public class jTPCC implements jTPCCConfig
                         printMessage(terminalName + "\t" + terminalWarehouseID);
                     }
 
-                    sessionEndTargetTime = executionTimeMillis;
+                    sessionWarmedTargetTime = warmupTimeMillis;
+                    sessionEndTargetTime = executionTimeMillis + warmupTimeMillis;
                     signalTerminalsRequestEndSent = false;
 
 
@@ -589,6 +592,8 @@ public class jTPCC implements jTPCCConfig
                     sessionStart = getCurrentTime();
                     sessionStartTimestamp = System.currentTimeMillis();
                     sessionNextTimestamp = sessionStartTimestamp;
+                    sessionWarmedTargetTime += sessionStartTimestamp;
+
                     if(sessionEndTargetTime != -1)
                         sessionEndTargetTime += sessionStartTimestamp;
 
@@ -648,22 +653,22 @@ public class jTPCC implements jTPCCConfig
 
     private void signalTerminalsRequestEnd(boolean timeTriggered)
     {
-    synchronized(terminals)
-    {
-        if(!signalTerminalsRequestEndSent)
+        synchronized(terminals)
         {
-            if(timeTriggered)
-                printMessage("The time limit has been reached.");
-            printMessage("Signalling all terminals to stop...");
-            signalTerminalsRequestEndSent = true;
+            if(!signalTerminalsRequestEndSent)
+            {
+                if(timeTriggered)
+                    printMessage("The time limit has been reached.");
+                printMessage("Signalling all terminals to stop...");
+                signalTerminalsRequestEndSent = true;
 
-            for(int i = 0; i < terminals.length; i++)
-                if(terminals[i] != null)
-                    terminals[i].stopRunningWhenPossible();
+                for(int i = 0; i < terminals.length; i++)
+                    if(terminals[i] != null)
+                        terminals[i].stopRunningWhenPossible();
 
-            printMessage("Waiting for all active transactions to end...");
+                printMessage("Waiting for all active transactions to end...");
+            }
         }
-    }
     }
 
     public void signalTerminalEnded(jTPCCTerminal terminal, long countNewOrdersExecuted)
@@ -713,21 +718,41 @@ public class jTPCC implements jTPCCConfig
         }
     }
 
+    private boolean sessionShouldEnd(long current) {
+        return sessionEndTargetTime != -1 && current > sessionEndTargetTime;
+    }
+
+    private boolean sessionWarmed(long current) {
+        return current > sessionWarmedTargetTime;
+    }
+
+    public void signalTerminalEndedTransactionBulk(int transaction, int newOrder) {
+        long current = System.currentTimeMillis();
+        if (sessionWarmed(current)) {
+            synchronized (counterLock) {
+                transactionCount += transaction;
+                fastNewOrderCounter += newOrder;
+            }
+            if (sessionShouldEnd(current)) {
+                signalTerminalsRequestEnd(true);
+            }
+            updateStatusLine();
+        }
+    }
+
     public void signalTerminalEndedTransaction(String terminalName, String transactionType, long executionTime, String comment, int newOrder)
     {
-        synchronized (counterLock)
-        {
-            transactionCount++;
-            fastNewOrderCounter += newOrder;
+        long current = System.currentTimeMillis();
+        if (sessionWarmed(current)) {
+            synchronized (counterLock) {
+                transactionCount ++;
+                fastNewOrderCounter += newOrder;
+            }
+            if (sessionShouldEnd(current)) {
+                signalTerminalsRequestEnd(true);
+            }
+            updateStatusLine();
         }
-
-        if(sessionEndTargetTime != -1 && System.currentTimeMillis() > sessionEndTargetTime)
-        {
-            signalTerminalsRequestEnd(true);
-        }
-
-        updateStatusLine();
-
     }
 
     public jTPCCRandom getRnd()
@@ -796,34 +821,37 @@ public class jTPCC implements jTPCCConfig
         return dateFormat.format(new java.util.Date());
     }
 
-    synchronized private void updateStatusLine()
+    private void updateStatusLine()
     {
         long currTimeMillis = System.currentTimeMillis();
 
         if(currTimeMillis > sessionNextTimestamp)
         {
-            StringBuilder informativeText = new StringBuilder("");
-            Formatter fmt = new Formatter(informativeText);
-            double tpmC = (6000000*fastNewOrderCounter/(currTimeMillis - sessionStartTimestamp))/100.0;
-            double tpmTotal = (6000000*transactionCount/(currTimeMillis - sessionStartTimestamp))/100.0;
+            if (statusLock.tryLock()) {
+                StringBuilder informativeText = new StringBuilder("");
+                Formatter fmt = new Formatter(informativeText);
+                double tpmC = (6000000*fastNewOrderCounter/(currTimeMillis - sessionStartTimestamp))/100.0;
+                double tpmTotal = (6000000*transactionCount/(currTimeMillis - sessionStartTimestamp))/100.0;
 
-            sessionNextTimestamp += 1000;  /* update this every seconds */
+                sessionNextTimestamp += 1000;  /* update this every seconds */
 
-            fmt.format("Term-00, Running Average tpmTOTAL: %.2f", tpmTotal);
+                fmt.format("Term-00, Running Average tpmTOTAL: %.2f", tpmTotal);
 
-            /* XXX What is the meaning of these numbers? */
-            recentTpmC = (fastNewOrderCounter - sessionNextKounter) * 12;
-            recentTpmTotal= (transactionCount-sessionNextKounter)*12;
-            sessionNextKounter = fastNewOrderCounter;
-            fmt.format("    Current tpmTOTAL: %d", recentTpmTotal);
+                /* XXX What is the meaning of these numbers? */
+                recentTpmC = (fastNewOrderCounter - sessionNextKounter) * 12;
+                recentTpmTotal= (transactionCount-sessionNextKounter)*12;
+                sessionNextKounter = fastNewOrderCounter;
+                fmt.format("    Current tpmTOTAL: %d", recentTpmTotal);
 
-            long freeMem = Runtime.getRuntime().freeMemory() / (1024*1024);
-            long totalMem = Runtime.getRuntime().totalMemory() / (1024*1024);
-            fmt.format("    Memory Usage: %dMB / %dMB          ", (totalMem - freeMem), totalMem);
+                long freeMem = Runtime.getRuntime().freeMemory() / (1024*1024);
+                long totalMem = Runtime.getRuntime().totalMemory() / (1024*1024);
+                fmt.format("    Memory Usage: %dMB / %dMB          ", (totalMem - freeMem), totalMem);
 
-            System.out.print(informativeText);
-            for (int count = 0; count < 1+informativeText.length(); count++)
-                System.out.print("\b");
+                System.out.print(informativeText);
+                for (int count = 0; count < 1+informativeText.length(); count++)
+                    System.out.print("\b");
+                statusLock.unlock();
+            }
         }
     }
 }
