@@ -16,6 +16,7 @@ import java.util.*;
 import java.util.regex.Pattern;
 import java.text.*;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 
 public class jTPCC implements jTPCCConfig
@@ -35,6 +36,7 @@ public class jTPCC implements jTPCCConfig
     private long terminalsStarted = 0, sessionCount = 0, transactionCount = 0;
     private Object counterLock = new Object();
     private ReentrantLock statusLock = new ReentrantLock();
+    private AtomicBoolean warmed = new AtomicBoolean(false);
 
     private long newOrderCounter = 0, sessionStartTimestamp, sessionEndTimestamp, sessionNextTimestamp=0, sessionNextKounter=0;
     private long sessionWarmedTargetTime;
@@ -449,7 +451,7 @@ public class jTPCC implements jTPCCConfig
                     throw new Exception();
                 }
 
-                warmupTimeMillis = (long)(Double.parseDouble(iWarmupTime)) * 60000;
+                warmupTimeMillis = (long)(Double.parseDouble(iWarmupTime) * 60000);
 
                 plMode = Boolean.parseBoolean(iPlMode);
 
@@ -726,33 +728,53 @@ public class jTPCC implements jTPCCConfig
         return current > sessionWarmedTargetTime;
     }
 
+    private long elapsedTime(long current) {
+        if (warmed.get()) {
+            return current - sessionWarmedTargetTime;
+        } else {
+            return current - sessionStartTimestamp;
+        }
+    }
+
     public void signalTerminalEndedTransactionBulk(int transaction, int newOrder) {
         long current = System.currentTimeMillis();
-        if (sessionWarmed(current)) {
-            synchronized (counterLock) {
-                transactionCount += transaction;
-                fastNewOrderCounter += newOrder;
+        synchronized (counterLock) {
+            if (!warmed.get() && sessionWarmed(current)) {
+                System.out.println("\nSession warmed");
+                warmed.set(true);
+                transactionCount = 0;
+                fastNewOrderCounter = 0;
+                sessionNextKounter = 0;
             }
-            if (sessionShouldEnd(current)) {
-                signalTerminalsRequestEnd(true);
-            }
-            updateStatusLine();
+            transactionCount += transaction;
+            fastNewOrderCounter += newOrder;
         }
+
+        if (sessionShouldEnd(current)) {
+            signalTerminalsRequestEnd(true);
+        }
+        updateStatusLine();
     }
 
     public void signalTerminalEndedTransaction(String terminalName, String transactionType, long executionTime, String comment, int newOrder)
     {
         long current = System.currentTimeMillis();
-        if (sessionWarmed(current)) {
-            synchronized (counterLock) {
-                transactionCount ++;
-                fastNewOrderCounter += newOrder;
+        synchronized (counterLock) {
+            if (!warmed.get() && sessionWarmed(current)) {
+                System.out.println("\nSession warmed");
+                warmed.set(true);
+                transactionCount = 0;
+                fastNewOrderCounter = 0;
+                sessionNextKounter = 0;
             }
-            if (sessionShouldEnd(current)) {
-                signalTerminalsRequestEnd(true);
-            }
-            updateStatusLine();
+            transactionCount += 1;
+            fastNewOrderCounter += newOrder;
         }
+
+        if (sessionShouldEnd(current)) {
+            signalTerminalsRequestEnd(true);
+        }
+        updateStatusLine();
     }
 
     public jTPCCRandom getRnd()
@@ -781,8 +803,8 @@ public class jTPCC implements jTPCCConfig
         long currTimeMillis = System.currentTimeMillis();
         long freeMem = Runtime.getRuntime().freeMemory() / (1024*1024);
         long totalMem = Runtime.getRuntime().totalMemory() / (1024*1024);
-        double tpmC = (6000000*fastNewOrderCounter/(currTimeMillis - sessionStartTimestamp))/100.0;
-        double tpmTotal = (6000000*transactionCount/(currTimeMillis - sessionStartTimestamp))/100.0;
+        double tpmC = (6000000*fastNewOrderCounter/(elapsedTime(currTimeMillis)))/100.0;
+        double tpmTotal = (6000000*transactionCount/(elapsedTime(currTimeMillis)))/100.0;
 
         System.out.println("");
         log.info("Term-00, ");
@@ -823,6 +845,7 @@ public class jTPCC implements jTPCCConfig
 
     private void updateStatusLine()
     {
+        
         long currTimeMillis = System.currentTimeMillis();
 
         if(currTimeMillis > sessionNextTimestamp)
@@ -830,8 +853,8 @@ public class jTPCC implements jTPCCConfig
             if (statusLock.tryLock()) {
                 StringBuilder informativeText = new StringBuilder("");
                 Formatter fmt = new Formatter(informativeText);
-                double tpmC = (6000000*fastNewOrderCounter/(currTimeMillis - sessionStartTimestamp))/100.0;
-                double tpmTotal = (6000000*transactionCount/(currTimeMillis - sessionStartTimestamp))/100.0;
+                double tpmC = (6000000*fastNewOrderCounter/elapsedTime(currTimeMillis))/100.0;
+                double tpmTotal = (6000000*transactionCount/elapsedTime(currTimeMillis))/100.0;
 
                 sessionNextTimestamp += 1000;  /* update this every seconds */
 
