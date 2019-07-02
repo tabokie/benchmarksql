@@ -1,11 +1,16 @@
-#!/bin/sh
+#!/usr/bin/env bash
 
-if [ $# -ne 1 ] ; then
-    echo "usage: $(basename $0) RESULT_DIR" >&2
+if [ $# -lt 1 ] ; then
+    echo "usage: $(basename $0) RESULT_DIR [SKIP_MINUTES]" >&2
     exit 2
 fi
 
 TABLE_WIDTH="1100px"
+if [ $# -gt 1 ] ; then
+  SKIP=$2
+else
+  SKIP=0
+fi
 
 function getRunInfo()
 {
@@ -33,7 +38,7 @@ function getProp()
     grep "^${1}=" run.properties | sed -e "s/^${1}=//"
 }
 
-./generateGraphs.sh "${1}"
+./generateGraphs.sh "${1}" $SKIP
 cd "${1}"
 echo -n "Generating ${1}/report.html ... "
 
@@ -47,52 +52,41 @@ cat >report.html <<_EOF_
     BenchmarkSQL Run #$(getRunInfo run) started $(getRunInfo sessionStart)
   </title>
   <style>
-
-h1,h2,h3,h4	{ color:#2222AA;
-		}
-
-h1		{ font-family: Helvetica,Arial;
-		  font-weight: 700;
-		  font-size: 24pt;
-		}
-
-h2		{ font-family: Helvetica,Arial;
-		  font-weight: 700;
-		  font-size: 18pt;
-		}
-
-h3,h4		{ font-family: Helvetica,Arial;
-		  font-weight: 700;
-		  font-size: 16pt;
-		}
-
-p,li,dt,dd	{ font-family: Helvetica,Arial;
-		  font-size: 14pt;
-		}
-
-p		{ margin-left: 50px;
-		}
-
-pre		{ font-family: Courier,Fixed;
-		  font-size: 14pt;
-		}
-
-samp		{ font-family: Courier,Fixed;
-		  font-weight: 900;
-		  font-size: 14pt;
-		}
-
-big		{ font-weight: 900;
-		  font-size: 120%;
-		}
-
+h1,h2,h3,h4 { color:#2222AA;
+    }
+h1    { font-family: Helvetica,Arial;
+      font-weight: 700;
+      font-size: 24pt;
+    }
+h2    { font-family: Helvetica,Arial;
+      font-weight: 700;
+      font-size: 18pt;
+    }
+h3,h4   { font-family: Helvetica,Arial;
+      font-weight: 700;
+      font-size: 16pt;
+    }
+p,li,dt,dd  { font-family: Helvetica,Arial;
+      font-size: 14pt;
+    }
+p   { margin-left: 50px;
+    }
+pre   { font-family: Courier,Fixed;
+      font-size: 14pt;
+    }
+samp    { font-family: Courier,Fixed;
+      font-weight: 900;
+      font-size: 14pt;
+    }
+big   { font-weight: 900;
+      font-size: 120%;
+    }
   </style>
 </head>
 <body bgcolor="#ffffff">
   <h1>
     BenchmarkSQL Run #$(getRunInfo run) started $(getRunInfo sessionStart)
   </h1>
-
   <p>
     This TPC-C style benchmark run was performed by the "$(getRunInfo driver)"
     driver of BenchmarkSQL version $(getRunInfo driverVersion). 
@@ -117,7 +111,6 @@ cat >>report.html <<_EOF_
     </td></tr>
     </table>
   </p>
-
 _EOF_
 
 # ----
@@ -145,7 +138,7 @@ cat >> report.html <<_EOF_
     <table width="${TABLE_WIDTH}" border="2">
     <tr>
       <th rowspan="2" width="16%"><b>Transaction<br/>Type</b></th>
-      <th colspan="2" width="24%"><b>Latency</b></th>
+      <th colspan="3" width="24%"><b>Latency</b></th>
       <th rowspan="2" width="12%"><b>Count</b></th>
       <th rowspan="2" width="12%"><b>Percent</b></th>
       <th rowspan="2" width="12%"><b>Rollback</b></th>
@@ -153,27 +146,29 @@ cat >> report.html <<_EOF_
       <th rowspan="2" width="12%"><b>Skipped<br/>Deliveries</b></th>
     </tr>
     <tr>
-      <th width="12%"><b>90th&nbsp;%</b></th>
-      <th width="12%"><b>Maximum</b></th>
+      <th width="8%"><b>90th&nbsp;%</b></th>
+      <th width="8%"><b>Avg</b></th>
+      <th width="8%"><b>Max</b></th>
     </tr>
 _EOF_
 
 tr ',' ' ' <data/tx_summary.csv | \
-    while read name count percent ninth max limit rbk error dskipped ; do
-	[ ${name} == "tx_name" ] && continue
-	[ ${name} == "tpmC" ] && continue
-	[ ${name} == "tpmTotal" ] && continue
+    while read name count percent ninth avg max limit rbk error dskipped ; do
+  [ ${name} == "tx_name" ] && continue
+  [ ${name} == "tpmC" ] && continue
+  [ ${name} == "tpmTotal" ] && continue
 
-	echo "    <tr>"
-	echo "      <td align=\"left\">${name}</td>"
-	echo "      <td align=\"right\">${ninth}</td>"
-	echo "      <td align=\"right\">${max}</td>"
-	echo "      <td align=\"right\">${count}</td>"
-	echo "      <td align=\"right\">${percent}</td>"
-	echo "      <td align=\"right\">${rbk}</td>"
-	echo "      <td align=\"right\">${error}</td>"
-	echo "      <td align=\"right\">${dskipped}</td>"
-	echo "    </tr>"
+  echo "    <tr>"
+  echo "      <td align=\"left\">${name}</td>"
+  echo "      <td align=\"right\">${ninth}</td>"
+  echo "      <td align=\"right\">${avg}</td>"
+  echo "      <td align=\"right\">${max}</td>"
+  echo "      <td align=\"right\">${count}</td>"
+  echo "      <td align=\"right\">${percent}</td>"
+  echo "      <td align=\"right\">${rbk}</td>"
+  echo "      <td align=\"right\">${error}</td>"
+  echo "      <td align=\"right\">${dskipped}</td>"
+  echo "    </tr>"
     done >>report.html
 
 tpmC=$(grep "^tpmC," data/tx_summary.csv | sed -e 's/[^,]*,//' -e 's/,.*//')
@@ -182,7 +177,6 @@ tpmTotal=$(grep "^tpmTotal," data/tx_summary.csv | sed -e 's/[^,]*,//' -e 's/,.*
 cat >>report.html <<_EOF_
     </table>
   </p>
-
   <p>
     <table border="0">
       <tr>
@@ -206,7 +200,6 @@ cat >>report.html <<_EOF_
     The above tpmC of ${tpmC} is ${tpmCpct} of that theoretical maximum for a
     database with $(getRunInfo runWarehouses) warehouses.
   </p>
-
 _EOF_
 
 # ----
@@ -221,11 +214,10 @@ cat >>report.html <<_EOF_
     per minute. tpmTOTAL is the number of Transactions processed per
     minute for all transaction types, but without the background part
     of the DELIVERY transaction. 
-
     <br/>
-    <img src="tpm_nopm.png"/>
+    <img src="data:image/svg+xml;base64,$(base64 tpm_nopm.svg)" />
     <br/>
-    <img src="latency.png"/>
+    <img src="data:image/svg+xml;base64,$(base64 latency.svg)" />
   </p>
 _EOF_
 
@@ -240,13 +232,32 @@ cat >>report.html <<_EOF_
     CPU Utilization
   </h3>
   <p>
-    The percentages for User, System and IOWait CPU time are stacked
-    on top of each other. 
+    <table border="2">
+    <tr>
+      <th colspan="2"><b>Overall Average CPU Utilization</b></th>
+    </tr>
+_EOF_
 
-    <br/>
-    <img src="cpu_utilization.png"/>
+tr ',' ' ' <data/cpu_summary.csv | \
+    while read category value ; do
+  [ $category == "cpu_category" ] && continue
+  echo "    <tr>"
+  echo "      <td align=\"left\">${category}</td>"
+  echo "      <td align=\"right\">${value}</td>"
+  echo "    </tr>"
+    done >>report.html
+
+cat >>report.html <<_EOF_
+    </table>
   </p>
-
+  <br/>
+  <br/>
+  <p>
+    <b>Note:</b>In the graph below the percentages for User, System and IOWait CPU time are stacked
+    on top of each other. 
+    <br/>
+    <img src="data:image/svg+xml;base64,$(base64 cpu_utilization.svg)" />
+  </p>
   <h3>
     Dirty Kernel Buffers
   </h3>
@@ -260,9 +271,8 @@ cat >>report.html <<_EOF_
     when the OS is actually transferring these dirty buffers to
     the IO controller(s) in order to eventually get written to
     real disks (or similar). 
-
     <br/>
-    <img src="dirty_buffers.png"/>
+    <img src="data:image/svg+xml;base64,$(base64 dirty_buffers.svg)" />
   </p>
 _EOF_
 
@@ -280,9 +290,9 @@ for devdata in data/blk_*.csv ; do
       Block Device ${dev}
     </h3>
     <p>
-      <img src="${dev}_iops.png"/>
+      <img src="data:image/svg+xml;base64,$(base64 ${dev}_iops.svg)" />
       <br/>
-      <img src="${dev}_kbps.png"/>
+      <img src="data:image/svg+xml;base64,$(base64 ${dev}_kbps.svg)" />
     </p>
 _EOF_
 done
@@ -301,9 +311,9 @@ for devdata in data/net_*.csv ; do
       Network Device ${dev}
     </h3>
     <p>
-      <img src="${dev}_iops.png"/>
+      <img src="data:image/svg+xml;base64,$(base64 ${dev}_iops.svg)" />
       <br/>
-      <img src="${dev}_kbps.png"/>
+      <img src="data:image/svg+xml;base64,$(base64 ${dev}_kbps.svg)" />
     </p>
 _EOF_
 done
@@ -314,7 +324,13 @@ done
 cat >>report.html <<_EOF_
 </body>
 </html>
-
 _EOF_
+
+# ----
+# Copy the report to the name of the result directory as .html
+# We do the dirname-trick to strip any trailing / that might
+# have resulted from tab-completion.
+# ----
+cp report.html ../$(dirname ${1}/.dummy).html
 
 echo "OK"

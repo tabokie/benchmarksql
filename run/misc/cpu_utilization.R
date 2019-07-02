@@ -11,6 +11,7 @@ runInfo <- read.csv("data/runInfo.csv", head=TRUE)
 # Determine the grouping interval in seconds based on the
 # run duration.
 # ----
+xmin <- @SKIP@
 xmax <- runInfo$runMins
 for (interval in c(1, 2, 5, 10, 20, 60, 120, 300, 600)) {
     if ((xmax * 60) / interval <= 1000) {
@@ -18,11 +19,13 @@ for (interval in c(1, 2, 5, 10, 20, 60, 120, 300, 600)) {
     }
 }
 idiv <- interval * 1000.0
+skip <- xmin * 60000
 
 # ----
 # Read the recorded CPU data and aggregate it for the desired interval.
 # ----
 rawData <- read.csv("data/sys_info.csv", head=TRUE)
+rawData <- rawData[rawData$elapsed >= skip, ]
 aggUser <- setNames(aggregate(rawData$cpu_user,
 			      list(elapsed=trunc(rawData$elapsed / idiv) * idiv), mean),
 		    c('elapsed', 'cpu_user'))
@@ -42,7 +45,7 @@ ymax = 100
 # ----
 # Start the output image.
 # ----
-png("cpu_utilization.png", width=@WIDTH@, height=@HEIGHT@)
+svg("cpu_utilization.svg", width=@WIDTH@, height=@HEIGHT@, pointsize=@POINTSIZE@)
 par(mar=c(4,4,4,4), xaxp=c(10,200,19))
 
 # ----
@@ -54,7 +57,7 @@ plot (
 	axes=TRUE,
 	xlab="Elapsed Minutes",
 	ylab="CPU Utilization in Percent",
-	xlim=c(0, xmax),
+	xlim=c(xmin, xmax),
 	ylim=c(0, ymax)
 )
 
@@ -68,7 +71,7 @@ plot (
 	axes=FALSE,
 	xlab="",
 	ylab="",
-	xlim=c(0, xmax),
+	xlim=c(xmin, xmax),
 	ylim=c(0, ymax)
 )
 
@@ -82,7 +85,7 @@ plot (
 	axes=FALSE,
 	xlab="",
 	ylab="",
-	xlim=c(0, xmax),
+	xlim=c(xmin, xmax),
 	ylim=c(0, ymax)
 )
 
@@ -98,3 +101,37 @@ title (main=c(
     ))
 grid()
 box()
+
+# ----
+# Generate the CPU utilization summary and write it to data/cpu_summary.csv
+# ----
+cpu_category <- c(
+	'cpu_user',
+	'cpu_system',
+	'cpu_iowait',
+	'cpu_idle',
+	'cpu_nice',
+	'cpu_irq',
+	'cpu_softirq',
+	'cpu_steal',
+	'cpu_guest',
+	'cpu_guest_nice'
+	)
+cpu_usage <- c(
+	sprintf("%.3f%%", mean(rawData$cpu_user) * 100.0),
+	sprintf("%.3f%%", mean(rawData$cpu_system) * 100.0),
+	sprintf("%.3f%%", mean(rawData$cpu_iowait) * 100.0),
+	sprintf("%.3f%%", mean(rawData$cpu_idle) * 100.0),
+	sprintf("%.3f%%", mean(rawData$cpu_nice) * 100.0),
+	sprintf("%.3f%%", mean(rawData$cpu_irq) * 100.0),
+	sprintf("%.3f%%", mean(rawData$cpu_softirq) * 100.0),
+	sprintf("%.3f%%", mean(rawData$cpu_steal) * 100.0),
+	sprintf("%.3f%%", mean(rawData$cpu_guest) * 100.0),
+	sprintf("%.3f%%", mean(rawData$cpu_guest_nice) * 100.0)
+	)
+cpu_info <- data.frame(
+	cpu_category,
+	cpu_usage
+	)
+write.csv(cpu_info, file = "data/cpu_summary.csv", quote = FALSE, na = "N/A",
+	row.names = FALSE)

@@ -121,6 +121,10 @@ public class jTPCCRandom
 	    return (long)(random.nextDouble() * (y - x + 1) + x);
     }
 
+    public double nextDouble(double x, double y) {
+        return random.nextDouble() * (y - x) + x;
+    }
+
     /*
      * nextInt(x, y)
      *
