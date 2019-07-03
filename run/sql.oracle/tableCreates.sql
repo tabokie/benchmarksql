@@ -70,7 +70,6 @@ create table bmsql_history (
   h_amount decimal(6,2),
   h_data   varchar(24)
 )
-partition by hash(h_w_id) partitions 32
 pctfree 5 initrans 4
 storage (buffer_pool recycle);
 
@@ -90,7 +89,6 @@ create table bmsql_new_order (
   no_d_id  integer   not null,
   no_o_id  integer   not null
 )
-partition by hash(no_w_id) partitions 32
 parallel (degree 32);
 
 create table bmsql_oorder (
@@ -103,7 +101,6 @@ create table bmsql_oorder (
   o_all_local  integer,
   o_entry_d    timestamp
 )
-partition by hash(o_w_id) partitions 32
 parallel (degree 64);
 
 create table bmsql_order_line (
@@ -118,7 +115,6 @@ create table bmsql_order_line (
   ol_quantity     integer,
   ol_dist_info    char(24)
 )
-partition by hash(ol_w_id) partitions 32
 parallel (degree 64);
 
 create table bmsql_item (
