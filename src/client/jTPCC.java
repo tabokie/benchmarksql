@@ -745,9 +745,10 @@ public class jTPCC implements jTPCCConfig
                 transactionCount = 0;
                 fastNewOrderCounter = 0;
                 sessionNextKounter = 0;
+            } else {
+                transactionCount += transaction;
+                fastNewOrderCounter += newOrder;    
             }
-            transactionCount += transaction;
-            fastNewOrderCounter += newOrder;
         }
 
         if (sessionShouldEnd(current)) {

@@ -145,11 +145,14 @@ public class jTPCCTData
         }
 
         transEnd = System.currentTimeMillis();
-        }
+    }
 
-        public void traceScreen(Logger log)
-        throws Exception
-        {
+    public void traceScreen(Logger log)
+    throws Exception
+    {
+        if (!log.isTraceEnabled())
+            return;
+
         StringBuffer    sb = new StringBuffer();
         Formatter       fmt = new Formatter(sb);
 
@@ -160,9 +163,6 @@ public class jTPCCTData
             screenSb[i] = new StringBuffer();
             screenFmt[i] = new Formatter(screenSb[i]);
         }
-
-        if (!log.isTraceEnabled())
-            return;
 
         if (transType < TT_NEW_ORDER || transType > TT_DONE)
             throw new Exception("Unknown transType " + transType);
@@ -248,9 +248,9 @@ public class jTPCCTData
         String  line;
 
         resultFmt.format("%d,%d,%d,%s,%d,%d,%d\n",
-            transEnd - sessionStart,
-            transEnd - transDue,
-            transEnd - transStart,
+            (transEnd - sessionStart) * 10000,
+            (transEnd - transDue) * 1000,
+            (transEnd - transStart) * 100,
             transTypeNames[transType],
             (transRbk) ? 1 : 0,
             (transType == TT_DELIVERY_BG) ? getSkippedDeliveries() : 0,
@@ -1181,84 +1181,84 @@ public class jTPCCTData
 
     private void tracePayment(Logger log, Formatter fmt[])
     {
-    fmt[0].format("                                     Payment");
+        fmt[0].format("                                     Payment");
 
-    if (transEnd == 0)
-    {
-        // PAYMENT INPUT screen
-        fmt[1].format("Date: ");
-        fmt[3].format("Warehouse: %6d                         District: %2d",
-              payment.w_id, payment.d_id);
-
-        if (payment.c_last == null)
+        if (transEnd == 0)
         {
-        fmt[8].format("Customer: %4d  Cust-Warehouse: %6d  Cust-District: %2d",
-                  payment.c_id, payment.c_w_id, payment.c_d_id);
-        fmt[9].format("Name:                       ________________       Since:");
+            // PAYMENT INPUT screen
+            fmt[1].format("Date: ");
+            fmt[3].format("Warehouse: %6d                         District: %2d",
+                payment.w_id, payment.d_id);
+
+            if (payment.c_last == null)
+            {
+            fmt[8].format("Customer: %4d  Cust-Warehouse: %6d  Cust-District: %2d",
+                    payment.c_id, payment.c_w_id, payment.c_d_id);
+            fmt[9].format("Name:                       ________________       Since:");
+            }
+            else
+            {
+            fmt[8].format("Customer: ____  Cust-Warehouse: %6d  Cust-District: %2d",
+                    payment.c_w_id, payment.c_d_id);
+            fmt[9].format("Name:                       %-16.16s       Since:",
+                    payment.c_last);
+            }
+            fmt[10].format("                                                   Credit:");
+            fmt[11].format("                                                   %%Disc:");
+            fmt[12].format("                                                   Phone:");
+
+            fmt[14].format("Amount Paid:          $%7.2f        New Cust-Balance:",
+                payment.h_amount);
+            fmt[15].format("Credit Limit:");
+            fmt[17].format("Cust-Data:");
         }
         else
         {
-        fmt[8].format("Customer: ____  Cust-Warehouse: %6d  Cust-District: %2d",
-                  payment.c_w_id, payment.c_d_id);
-        fmt[9].format("Name:                       %-16.16s       Since:",
-                  payment.c_last);
-        }
-        fmt[10].format("                                                   Credit:");
-        fmt[11].format("                                                   %%Disc:");
-        fmt[12].format("                                                   Phone:");
+            // PAYMENT OUTPUT screen
+            fmt[1].format("Date: %-19.19s", payment.h_date);
+            fmt[3].format("Warehouse: %6d                         District: %2d",
+                payment.w_id, payment.d_id);
+            fmt[4].format("%-20.20s                      %-20.20s",
+                payment.w_street_1, payment.d_street_1);
+            fmt[5].format("%-20.20s                      %-20.20s",
+                payment.w_street_2, payment.d_street_2);
+            fmt[6].format("%-20.20s %2.2s %5.5s-%4.4s        %-20.20s %2.2s %5.5s-%4.4s",
+                payment.w_city, payment.w_state,
+                payment.w_zip.substring(0, 5), payment.w_zip.substring(5, 9),
+                payment.d_city, payment.d_state,
+                payment.d_zip.substring(0, 5), payment.d_zip.substring(5, 9));
+            log.trace("w_zip=" + payment.w_zip + " d_zip=" + payment.d_zip);
 
-        fmt[14].format("Amount Paid:          $%7.2f        New Cust-Balance:",
-               payment.h_amount);
-        fmt[15].format("Credit Limit:");
-        fmt[17].format("Cust-Data:");
-    }
-    else
-    {
-        // PAYMENT OUTPUT screen
-        fmt[1].format("Date: %-19.19s", payment.h_date);
-        fmt[3].format("Warehouse: %6d                         District: %2d",
-              payment.w_id, payment.d_id);
-        fmt[4].format("%-20.20s                      %-20.20s",
-              payment.w_street_1, payment.d_street_1);
-        fmt[5].format("%-20.20s                      %-20.20s",
-              payment.w_street_2, payment.d_street_2);
-        fmt[6].format("%-20.20s %2.2s %5.5s-%4.4s        %-20.20s %2.2s %5.5s-%4.4s",
-              payment.w_city, payment.w_state,
-              payment.w_zip.substring(0, 5), payment.w_zip.substring(5, 9),
-              payment.d_city, payment.d_state,
-              payment.d_zip.substring(0, 5), payment.d_zip.substring(5, 9));
-log.trace("w_zip=" + payment.w_zip + " d_zip=" + payment.d_zip);
+            fmt[8].format("Customer: %4d  Cust-Warehouse: %6d  Cust-District: %2d",
+                payment.c_id, payment.c_w_id, payment.c_d_id);
+            fmt[9].format("Name:   %-16.16s %2.2s %-16.16s       Since:  %-10.10s",
+                payment.c_first, payment.c_middle, payment.c_last,
+                payment.c_since);
+            fmt[10].format("        %-20.20s                       Credit: %2s",
+                payment.c_street_1, payment.c_credit);
+            fmt[11].format("        %-20.20s                       %%Disc:  %5.2f",
+                payment.c_street_2, payment.c_discount * 100.0);
+            fmt[12].format("        %-20.20s %2.2s %5.5s-%4.4s         Phone:  %6.6s-%3.3s-%3.3s-%4.4s",
+                payment.c_city, payment.c_state,
+                payment.c_zip.substring(0, 5), payment.c_zip.substring(5, 9),
+                payment.c_phone.substring(0, 6), payment.c_phone.substring(6, 9),
+                payment.c_phone.substring(9, 12), payment.c_phone.substring(12, 16));
 
-        fmt[8].format("Customer: %4d  Cust-Warehouse: %6d  Cust-District: %2d",
-              payment.c_id, payment.c_w_id, payment.c_d_id);
-        fmt[9].format("Name:   %-16.16s %2.2s %-16.16s       Since:  %-10.10s",
-              payment.c_first, payment.c_middle, payment.c_last,
-              payment.c_since);
-        fmt[10].format("        %-20.20s                       Credit: %2s",
-               payment.c_street_1, payment.c_credit);
-        fmt[11].format("        %-20.20s                       %%Disc:  %5.2f",
-               payment.c_street_2, payment.c_discount * 100.0);
-        fmt[12].format("        %-20.20s %2.2s %5.5s-%4.4s         Phone:  %6.6s-%3.3s-%3.3s-%4.4s",
-               payment.c_city, payment.c_state,
-               payment.c_zip.substring(0, 5), payment.c_zip.substring(5, 9),
-               payment.c_phone.substring(0, 6), payment.c_phone.substring(6, 9),
-               payment.c_phone.substring(9, 12), payment.c_phone.substring(12, 16));
-
-        fmt[14].format("Amount Paid:          $%7.2f        New Cust-Balance: $%14.2f",
-               payment.h_amount, payment.c_balance);
-        fmt[15].format("Credit Limit:   $%13.2f", payment.c_credit_lim);
-        if (payment.c_data.length() >= 200)
-        {
-        fmt[17].format("Cust-Data: %-50.50s", payment.c_data.substring(0, 50));
-        fmt[18].format("           %-50.50s", payment.c_data.substring(50, 100));
-        fmt[19].format("           %-50.50s", payment.c_data.substring(100, 150));
-        fmt[20].format("           %-50.50s", payment.c_data.substring(150, 200));
+            fmt[14].format("Amount Paid:          $%7.2f        New Cust-Balance: $%14.2f",
+                payment.h_amount, payment.c_balance);
+            fmt[15].format("Credit Limit:   $%13.2f", payment.c_credit_lim);
+            if (payment.c_data.length() >= 200)
+            {
+            fmt[17].format("Cust-Data: %-50.50s", payment.c_data.substring(0, 50));
+            fmt[18].format("           %-50.50s", payment.c_data.substring(50, 100));
+            fmt[19].format("           %-50.50s", payment.c_data.substring(100, 150));
+            fmt[20].format("           %-50.50s", payment.c_data.substring(150, 200));
+            }
+            else
+            {
+            fmt[17].format("Cust-Data:");
+            }
         }
-        else
-        {
-        fmt[17].format("Cust-Data:");
-        }
-    }
     }
 
     private class PaymentData

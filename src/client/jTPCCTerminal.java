@@ -337,7 +337,7 @@ public class jTPCCTerminal implements jTPCCConfig, Runnable
             }
             if(stopRunningSignal) stopRunning = true;
         }
-        if (!reported) {
+        if (bulkReportMode && !reported) {
             parent.signalTerminalEndedTransactionBulk(transactionCount, newOrderCount);
         }
     }
