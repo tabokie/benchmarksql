@@ -132,12 +132,15 @@ PROCEDURE bmsql_func_payment
     in_c_w_id IN integer,
     in_c_d_id IN integer,
     in_h_amount IN decimal,
-    in_c_id IN integer
+    in_c_id IN integer,
+    in_c_last IN varchar
 ) as
+v_c_id integer := in_c_id;
 v_d_name varchar(10);
 v_w_name varchar(10);
 v_c_data varchar(500);
 v_c_credit char(2);
+v_rowid ROWID;
 BEGIN
 UPDATE bmsql_district SET d_ytd = d_ytd + in_h_amount
     WHERE d_w_id = in_w_id AND d_id = in_d_id;
@@ -149,34 +152,39 @@ UPDATE bmsql_warehouse SET w_ytd = w_ytd + in_h_amount
 SELECT w_name INTO v_w_name
     FROM bmsql_warehouse
     WHERE w_id = in_w_id;
--- exec in userspace
--- if in_c_last > 0 THEN
--- SELECT c_id FROM bmsql_customer WHERE c_w_id = in_w_id AND c_d_id = in_d_id AND c_last = in_c_last ORDER BY c_first;
-SELECT c_credit INTO v_c_credit
-    FROM bmsql_customer
-    WHERE c_w_id = in_c_w_id AND c_d_id = in_c_d_id AND c_id = in_c_id;
+
+if in_c_last IS NOT NULL THEN
+    bmsql_func_rowid_from_clast(in_w_id, in_d_id, in_c_last, v_rowid);
+    SELECT c_credit, c_id INTO v_c_credit, v_c_id
+        FROM bmsql_customer WHERE rowid = v_rowid;
+ELSE
+    SELECT c_credit INTO v_c_credit
+        FROM bmsql_customer
+        WHERE c_w_id = in_c_w_id AND c_d_id = in_c_d_id AND c_id = v_c_id;
+END IF;
+
 -- v_c_balance = v_c_balance - in_h_amount;
 IF v_c_credit = 'GC' THEN
     UPDATE bmsql_customer
         SET c_balance = c_balance - in_h_amount,
         c_ytd_payment = c_ytd_payment + in_h_amount,
         c_payment_cnt = c_payment_cnt + 1
-        WHERE c_w_id = in_c_w_id AND c_d_id = in_c_d_id AND c_id = in_c_id;
+        WHERE c_w_id = in_c_w_id AND c_d_id = in_c_d_id AND c_id = v_c_id;
 ELSE
     SELECT c_data INTO v_c_data
         FROM bmsql_customer
-        WHERE c_w_id = in_c_w_id AND c_d_id = in_c_d_id AND c_id = in_c_id;
+        WHERE c_w_id = in_c_w_id AND c_d_id = in_c_d_id AND c_id = v_c_id;
 -- omit c_data extension
     UPDATE bmsql_customer
         SET c_balance = c_balance - in_h_amount,
         c_ytd_payment = c_ytd_payment + in_h_amount,
         c_payment_cnt = c_payment_cnt + 1,
         c_data = v_c_data
-        WHERE c_w_id = in_c_w_id AND c_d_id = in_c_d_id AND c_id = in_c_id;
+        WHERE c_w_id = in_c_w_id AND c_d_id = in_c_d_id AND c_id = v_c_id;
     INSERT INTO bmsql_history
         (h_c_id, h_c_d_id, h_c_w_id, h_d_id, h_w_id, h_date, h_amount, h_data)
         VALUES
-        (in_c_id, in_c_d_id, in_c_w_id, in_d_id, in_w_id, CURRENT_TIMESTAMP, in_h_amount, CONCAT(v_w_name, v_d_name));
+        (v_c_id, in_c_d_id, in_c_w_id, in_d_id, in_w_id, CURRENT_TIMESTAMP, in_h_amount, CONCAT(v_w_name, v_d_name));
 END IF;
 COMMIT;
 END bmsql_func_payment;
@@ -258,24 +266,6 @@ SELECT count(1) INTO result FROM (
 );
 COMMIT;
 END bmsql_func_stocklevel;
-/
-
-/
-create or replace
-PROCEDURE bmsql_func_cid_from_clast
-(
-    in_w_id IN integer,
-    in_d_id IN integer,
-    in_c_last IN integer,
-    out_c_id OUT integer
-) AS
-v_c_id_list bmsql_type.MY_INT_TABLE;
-BEGIN
-SELECT c_id BULK COLLECT INTO v_c_id_list FROM bmsql_customer
-    WHERE c_w_id = in_w_id AND c_d_id = in_d_id AND c_last = in_c_last
-    ORDER BY c_first;
-out_c_id := v_c_id_list((SQL%ROWCOUNT + 1 )/ 2)
-END bmsql_func_cid_from_clast;
 /
 
 /

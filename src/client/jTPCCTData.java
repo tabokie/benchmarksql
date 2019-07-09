@@ -915,34 +915,35 @@ public class jTPCCTData
 		Vector <Integer>        c_id_list = new Vector <Integer> ();
 		try {
 			// If C_LAST is given instead of C_ID (60%), determine the C_ID.
-			if (payment.c_last != null)
-			{
-				stmt = db.stmtPaymentSelectCustomerListByLast;
-				stmt.setInt(1, payment.c_w_id);
-				stmt.setInt(2, payment.c_d_id);
-				stmt.setString(3, payment.c_last);
-				rs = stmt.executeQuery();
-				while (rs.next())
-					c_id_list.add(rs.getInt("c_id"));
-				rs.close();
+			// if (payment.c_last != null)
+			// {
+			// 	stmt = db.stmtPaymentSelectCustomerListByLast;
+			// 	stmt.setInt(1, payment.c_w_id);
+			// 	stmt.setInt(2, payment.c_d_id);
+			// 	stmt.setString(3, payment.c_last);
+			// 	rs = stmt.executeQuery();
+			// 	while (rs.next())
+			// 		c_id_list.add(rs.getInt("c_id"));
+			// 	rs.close();
 
-				if (c_id_list.size() == 0)
-				{
-					throw new Exception("Customer(s) for" +
-						" C_W_ID=" + payment.c_w_id +
-						" C_D_ID=" + payment.c_d_id +
-						" C_LAST=" + payment.c_last + " not found");
-				}
+			// 	if (c_id_list.size() == 0)
+			// 	{
+			// 		throw new Exception("Customer(s) for" +
+			// 			" C_W_ID=" + payment.c_w_id +
+			// 			" C_D_ID=" + payment.c_d_id +
+			// 			" C_LAST=" + payment.c_last + " not found");
+			// 	}
 
-				payment.c_id = c_id_list.get((c_id_list.size() + 1) / 2 - 1);
-			}
+			// 	payment.c_id = c_id_list.get((c_id_list.size() + 1) / 2 - 1);
+			// }
 			stmt = db.stmtPaymentPl;
 			stmt.setInt(1, payment.w_id);
 			stmt.setInt(2, payment.d_id);
 			stmt.setInt(3, payment.c_w_id);
 			stmt.setInt(4, payment.c_d_id);
 			stmt.setDouble(5, payment.h_amount);
-			stmt.setInt(6, payment.c_id);
+            stmt.setInt(6, payment.c_id);
+            stmt.setString(7, payment.c_last);
 			stmt.execute();	
 		} catch (SQLException se)
 		{

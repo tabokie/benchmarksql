@@ -128,7 +128,7 @@ public class jTPCCConnection
 
 		// PreparedStatements for PAYMENT
 		stmtPaymentPl = dbConn.prepareStatement(
-			"BEGIN bmsql_func_payment(?,?,?,?,?,?); END;"
+			"BEGIN bmsql_func_payment(?,?,?,?,?,?,?); END;"
 		);
 		stmtPaymentSelectWarehouse = dbConn.prepareStatement(
 			"SELECT w_name, w_street_1, w_street_2, w_city, " +

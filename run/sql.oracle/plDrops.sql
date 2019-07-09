@@ -1,4 +1,11 @@
 DROP PROCEDURE bmsql_func_neworder;
 DROP PROCEDURE bmsql_func_payment;
 DROP PROCEDURE bmsql_func_deliverybg;
+DROP PROCEDURE bmsql_func_stocklevel;
+DROP PROCEDURE bmsql_func_orderstatus;
+DROP PROCEDURE bmsql_func_rowid_from_clast;
 DROP TYPE MY_INT_ARR;
+DROP TYPE MY_NUM_ARR;
+DROP TYPE MY_VARCHAR_ARR;
+DROP TYPE MY_TS_ARR;
+DROP PACKAGE bmsql_type;

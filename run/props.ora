@@ -4,13 +4,13 @@ conn=jdbc:oracle:thin:@localhost:1521:orcl11g
 user=bmsql
 password=bmsql
 
-warehouses=3000
-loadWorkers=128
+warehouses=1500
+loadWorkers=512
 
 targetBegin=0
-targetSize=3000
+targetSize=1500
 sourceBegin=0
-sourceSize=3000
+sourceSize=1500
 
 // TPC-C allows session warmup to stable state (2% variance)
 warmupTime=0
