@@ -560,7 +560,7 @@ public class jTPCC implements jTPCCConfig
                         conn.setAutoCommit(false);
 
                         jTPCCTerminal terminal = new jTPCCTerminal
-                        (terminalName, terminalWarehouseID + sourceBegin, terminalDistrictID,
+                        (terminalName, terminalWarehouseID + sourceBegin, sourceBegin, sourceSize, terminalDistrictID,
                         conn, dbType,
                         transactionsPerTerminal, terminalWarehouseFixed,
                         paymentWeightValue, orderStatusWeightValue,

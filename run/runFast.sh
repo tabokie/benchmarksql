@@ -18,6 +18,4 @@ setCP || exit 1
 
 myOPTS="-Dprop=$1 -DrunID=${SEQ}"
 
-# only standalone html is needed
-rm -r -f *log
 java -cp "$myCP" $myOPTS jTPCC

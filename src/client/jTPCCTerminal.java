@@ -27,6 +27,7 @@ public class jTPCCTerminal implements jTPCCConfig, Runnable
     private Statement stmt1 = null;
     private ResultSet rs = null;
     private int terminalWarehouseID, terminalDistrictID;
+    private int sourceBegin, sourceSize;
     private boolean terminalWarehouseFixed;
     private double paymentWeight, orderStatusWeight, deliveryWeight, stockLevelWeight;
     private int limPerMin_Terminal;
@@ -52,7 +53,7 @@ public class jTPCCTerminal implements jTPCCConfig, Runnable
     int                 dbType = 0;
 
     public jTPCCTerminal
-      (String terminalName, int terminalWarehouseID, int terminalDistrictID,
+      (String terminalName, int terminalWarehouseID, int sourceBegin, int sourceSize, int terminalDistrictID,
        Connection conn, int dbType,
        int numTransactions, boolean terminalWarehouseFixed,
        double paymentWeight, double orderStatusWeight,
@@ -70,6 +71,8 @@ public class jTPCCTerminal implements jTPCCConfig, Runnable
         this.stmt1.setMaxRows(1);
 
         this.terminalWarehouseID = terminalWarehouseID;
+        this.sourceBegin = sourceBegin;
+        this.sourceSize = sourceSize;
         this.terminalDistrictID = terminalDistrictID;
         this.terminalWarehouseFixed = terminalWarehouseFixed;
         this.parent = parent;
@@ -158,7 +161,7 @@ public class jTPCCTerminal implements jTPCCConfig, Runnable
             * access pattern significantly.
             */
             if(!terminalWarehouseFixed)
-                terminalWarehouseID = rnd.nextInt(1, numWarehouses);
+                terminalWarehouseID = sourceBegin + rnd.nextInt(1, sourceSize);
 
             if(transactionType <= paymentWeight)
             {
