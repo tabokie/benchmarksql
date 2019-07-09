@@ -18,4 +18,11 @@ setCP || exit 1
 
 myOPTS="-Dprop=$1 -DrunID=${SEQ}"
 
+# only standalone html is needed
+rm -r -f *log
+./runSQL.sh "$1" prepare
+echo BEGIN: $(date) >> benchmark.run
+./runSQL.sh "$1" snapshot
 java -cp "$myCP" $myOPTS jTPCC
+echo END: $(date) >> benchmark.run
+./runSQL.sh "$1" snapshot
