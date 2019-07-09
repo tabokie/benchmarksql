@@ -256,9 +256,9 @@ public class jTPCCTData
         String  line;
 
         resultFmt.format("%d,%d,%d,%s,%d,%d,%d\n",
-            (transEnd - sessionStart) * 10000,
-            (transEnd - transDue) * 1000,
-            (transEnd - transStart) * 100,
+            (transEnd - sessionStart),
+            (transEnd - transDue),
+            (transEnd - transStart),
             transTypeNames[transType],
             (transRbk) ? 1 : 0,
             (transType == TT_DELIVERY_BG) ? getSkippedDeliveries() : 0,
