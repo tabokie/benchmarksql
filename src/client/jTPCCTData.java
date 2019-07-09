@@ -121,11 +121,19 @@ public class jTPCCTData
             break;
 
             case TT_ORDER_STATUS:
-            executeOrderStatus(log, db);
+            if (terminalPlMode) {
+                executeOrderStatusWithPl(log, db);
+            } else {
+                executeOrderStatus(log, db);
+            }
             break;
 
             case TT_STOCK_LEVEL:
-            executeStockLevel(log, db);
+            if (terminalPlMode) {
+                executeStockLevelWithPl(log, db);
+            } else {
+                executeStockLevel(log, db);
+            }
             break;
 
             case TT_DELIVERY:
@@ -376,9 +384,9 @@ public class jTPCCTData
             newOrder.o_ol_cnt = ol_cnt;
             stmt = db.stmtNewOrderPl;
             // preprocess the seq mapping
-            int[] ol_i_id = new int[15];
-            int[] ol_supply_w_id = new int[15];
-            int[] ol_quantity = new int[15];
+            Integer[] ol_i_id = new Integer[15];
+            Integer[] ol_supply_w_id = new Integer[15];
+            Integer[] ol_quantity = new Integer[15];
             for (int i = 0; i < ol_cnt; i++) {
                 int seq = ol_seq[i];
                 ol_i_id[i] = newOrder.ol_i_id[seq];
@@ -388,23 +396,28 @@ public class jTPCCTData
 
 
             int cur = 1;
-            for (int i = 0; i < 15; i++) {
-                stmt.setInt(cur, ol_i_id[i]);
-                cur += 1;
-            }
-            for (int i = 0; i < 15; i++) {
-                stmt.setInt(cur, ol_supply_w_id[i]);
-                cur += 1;
-            }
-            for (int i = 0; i < 15; i++) {
-                stmt.setInt(cur, ol_quantity[i]);
-                cur += 1;
-            }
+            // for (int i = 0; i < 15; i++) {
+            //     stmt.setInt(cur, ol_i_id[i]);
+            //     cur += 1;
+            // }
+            // for (int i = 0; i < 15; i++) {
+            //     stmt.setInt(cur, ol_supply_w_id[i]);
+            //     cur += 1;
+            // }
+            // for (int i = 0; i < 15; i++) {
+            //     stmt.setInt(cur, ol_quantity[i]);
+            //     cur += 1;
+            // }
             stmt.setInt(cur, newOrder.w_id); cur+=1;
             stmt.setInt(cur, newOrder.d_id); cur += 1;
             stmt.setInt(cur, newOrder.c_id); cur += 1;
             stmt.setInt(cur, newOrder.o_ol_cnt); cur += 1;
             stmt.setInt(cur, o_all_local); cur += 1;
+            // must be upper-case to avoid `invalid name pattern`
+            stmt.setObject(cur, ((oracle.jdbc.OracleConnection)(db.dbConn)).createARRAY("MY_INT_ARR", ol_i_id)); cur += 1;
+            stmt.setObject(cur, ((oracle.jdbc.OracleConnection)(db.dbConn)).createARRAY("MY_INT_ARR", ol_supply_w_id)); cur += 1;
+            stmt.setObject(cur, ((oracle.jdbc.OracleConnection)(db.dbConn)).createARRAY("MY_INT_ARR", ol_quantity)); cur += 1;
+
             stmt.execute();	
         } catch (SQLException se)
         {
@@ -1337,6 +1350,49 @@ public class jTPCCTData
         }
     }
 
+    private void executeOrderStatusWithPl(Logger log, jTPCCConnection db)
+    throws Exception
+    {
+        PreparedStatement stmt = db.stmtOrderStatusSelectPl;
+        try {
+            stmt.setInt(1, orderStatus.c_id);
+            stmt.setInt(2, orderStatus.w_id);
+            stmt.setInt(3, orderStatus.d_id);
+            stmt.setString(4, orderStatus.c_last);
+            stmt.executeQuery();
+        }
+        catch (SQLException se)
+        {
+            log.error("Unexpected SQLException in ORDER_STATUS_WITH_PL");
+            for (SQLException x = se; x != null; x = x.getNextException())
+                log.error(x.getMessage());
+            se.printStackTrace();
+
+            try
+            {
+                db.rollback();
+            }
+            catch (SQLException se2)
+            {
+                throw new Exception("Unexpected SQLException on rollback: " +
+                        se2.getMessage());
+            }
+        }
+        catch (Exception e)
+        {
+            try
+            {
+                db.rollback();
+            }
+            catch (SQLException se2)
+            {
+                throw new Exception("Unexpected SQLException on rollback: " +
+                        se2.getMessage());
+            }
+            throw e;
+        }
+    }
+
     private void executeOrderStatus(Logger log, jTPCCConnection db)
     throws Exception
     {
@@ -1576,6 +1632,49 @@ public class jTPCCTData
         stockLevel.w_id = terminalWarehouse;
         stockLevel.d_id = terminalDistrict;
         stockLevel.threshold = rnd.nextInt(10, 20);
+    }
+
+    private void executeStockLevelWithPl(Logger log, jTPCCConnection db)
+    throws Exception
+    {
+        PreparedStatement stmt;
+        try {
+            stmt = db.stmtStockLevelSelectLowPl;
+            stmt.setInt(1, stockLevel.w_id);
+            stmt.setInt(2, stockLevel.d_id);
+            stmt.setInt(3, stockLevel.threshold);
+            stmt.executeQuery();
+        }
+        catch (SQLException se)
+        {
+            log.error("Unexpected SQLException in STOCK_LEVEL_WITH_PL");
+            for (SQLException x = se; x != null; x = x.getNextException())
+                log.error(x.getMessage());
+            se.printStackTrace();
+
+            try
+            {
+                db.rollback();
+            }
+            catch (SQLException se2)
+            {
+                throw new Exception("Unexpected SQLException on rollback: " +
+                        se2.getMessage());
+            }
+        }
+        catch (Exception e)
+        {
+            try
+            {
+                db.rollback();
+            }
+            catch (SQLException se2)
+            {
+                throw new Exception("Unexpected SQLException on rollback: " +
+                        se2.getMessage());
+            }
+            throw e;
+        }
     }
 
     private void executeStockLevel(Logger log, jTPCCConnection db)

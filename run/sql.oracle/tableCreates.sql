@@ -1,3 +1,4 @@
+-- configured for 96c setup
 create table bmsql_config (
   cfg_name    varchar(30) primary key,
   cfg_value   varchar(50)
@@ -15,7 +16,7 @@ create table bmsql_warehouse (
   w_zip       char(9)
 )
 initrans 2
-storage (buffer_pool default) parallel (degree 32);
+storage (buffer_pool default) parallel (degree 16);
 
 create table bmsql_district (
   d_id         integer       not null,
@@ -31,7 +32,7 @@ create table bmsql_district (
   d_zip        char(9)
 )
 initrans 4
-storage (buffer_pool default) parallel (degree 32);
+storage (buffer_pool default) parallel (degree 16);
 
 create table bmsql_customer (
   c_id           integer        not null,
@@ -57,7 +58,7 @@ create table bmsql_customer (
   c_data         varchar(500)
 )
 pctfree 0 initrans 3
-storage (buffer_pool recycle) parallel (degree 1024);
+storage (buffer_pool recycle) parallel (degree 96);
 
 create table bmsql_history (
   -- hist_id  integer,
@@ -89,7 +90,7 @@ create table bmsql_new_order (
   no_d_id  integer   not null,
   no_o_id  integer   not null
 )
-parallel (degree 32);
+parallel (degree 16);
 
 create table bmsql_oorder (
   o_w_id       integer      not null,
@@ -101,7 +102,7 @@ create table bmsql_oorder (
   o_all_local  integer,
   o_entry_d    timestamp
 )
-parallel (degree 64);
+parallel (degree 32);
 
 create table bmsql_order_line (
   ol_w_id         integer   not null,
@@ -115,7 +116,7 @@ create table bmsql_order_line (
   ol_quantity     integer,
   ol_dist_info    char(24)
 )
-parallel (degree 64);
+parallel (degree 32);
 
 create table bmsql_item (
   i_id     integer      not null,
@@ -147,4 +148,4 @@ create table bmsql_stock (
   s_dist_10    char(24)
 )
 pctfree 0 initrans 2 maxtrans 2
-storage (buffer_pool keep) parallel (degree 1024);
+storage (buffer_pool keep) parallel (degree 96);

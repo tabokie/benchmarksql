@@ -14,7 +14,7 @@ import java.sql.*;
 
 public class jTPCCConnection
 {
-    private Connection          dbConn = null;
+    public Connection          dbConn = null;
     private int                 dbType = 0;
 
 	public PreparedStatement    stmtNewOrderPl;
@@ -40,11 +40,13 @@ public class jTPCCConnection
     public PreparedStatement    stmtPaymentUpdateCustomerWithData;
     public PreparedStatement    stmtPaymentInsertHistory;
 
+	public PreparedStatement    stmtOrderStatusSelectPl;
     public PreparedStatement    stmtOrderStatusSelectCustomerListByLast;
     public PreparedStatement    stmtOrderStatusSelectCustomer;
     public PreparedStatement    stmtOrderStatusSelectLastOrder;
     public PreparedStatement    stmtOrderStatusSelectOrderLine;
 
+	public PreparedStatement    stmtStockLevelSelectLowPl;
     public PreparedStatement    stmtStockLevelSelectLow;
 
 	public PreparedStatement    stmtDeliveryBGPl;
@@ -63,12 +65,17 @@ public class jTPCCConnection
 		this.dbType = dbType;
 
 		// PreparedStatements for NEW_ORDER
+		// stmtNewOrderPl = dbConn.prepareStatement(
+		// 	"DECLARE ol_iid MY_INT_ARR;ol_supply_wid MY_INT_ARR;ol_quantity MY_INT_ARR;" +
+		// 	"BEGIN ol_iid := MY_INT_ARR(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?);" +
+		// 	"ol_supply_wid := MY_INT_ARR(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?);" +
+		// 	"ol_quantity := MY_INT_ARR(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?);" +
+		// 	"bmsql_func_neworder(?,?,?,?,?,ol_iid,ol_supply_wid,ol_quantity);" +
+		// 	"END;"
+		// );
 		stmtNewOrderPl = dbConn.prepareStatement(
-			"DECLARE ol_iid MY_INT_ARR;ol_supply_wid MY_INT_ARR;ol_quantity MY_INT_ARR;" +
-			"BEGIN ol_iid := MY_INT_ARR(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?);" +
-			"ol_supply_wid := MY_INT_ARR(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?);" +
-			"ol_quantity := MY_INT_ARR(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?);" +
-			"bmsql_func_neworder(?,?,?,?,?,ol_iid,ol_supply_wid,ol_quantity);" +
+			"BEGIN " +
+			"bmsql_func_neworder(?,?,?,?,?,?,?,?);" +
 			"END;"
 		);
 		stmtNewOrderSelectWhseCust = dbConn.prepareStatement(
@@ -177,6 +184,10 @@ public class jTPCCConnection
 			"VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
 
 		// PreparedStatements for ORDER_STATUS
+		stmtOrderStatusSelectPl = dbConn.prepareStatement(
+			"DECLARE c_id integer := ?; BEGIN bmsql_func_orderstatus(?,?,?,c_id); END;"
+		);
+
 		stmtOrderStatusSelectCustomerListByLast = dbConn.prepareStatement(
 			"SELECT c_id " +
 			"    FROM bmsql_customer " +
@@ -203,6 +214,9 @@ public class jTPCCConnection
 			"    ORDER BY ol_w_id, ol_d_id, ol_o_id, ol_number");
 
 		// PreparedStatements for STOCK_LEVEL
+		stmtStockLevelSelectLowPl = dbConn.prepareStatement(
+			"BEGIN bmsql_func_stocklevel(?,?,?); END;"
+		);
 		switch (dbType)
 		{
 			case jTPCCConfig.DB_POSTGRES:

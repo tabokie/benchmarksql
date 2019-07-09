@@ -1,3 +1,4 @@
+-- configured for 96c setup
 create unique index bmsql_warehouse_pkey
   on bmsql_warehouse (w_id)
 --   local(
@@ -29,7 +30,7 @@ create unique index bmsql_warehouse_pkey
 -- , partition iware_25
 -- , partition iware_26
 -- )
-  parallel 256
+  parallel 32
   pctfree 1 initrans 3
   compute statistics;
 
@@ -69,7 +70,7 @@ create unique index bmsql_district_pkey
   compute statistics;
 
 create unique index bmsql_customer_pkey
-  on bmsql_customer (c_w_id, c_d_id, c_id)
+  on bmsql_customer (c_w_id, c_d_id, c_id) -- reverse
 --   local (
 -- partition icust1_0
 -- , partition icust1_1
@@ -99,7 +100,7 @@ create unique index bmsql_customer_pkey
 -- , partition icust1_25
 -- , partition icust1_26
 -- )
-  parallel 256
+  parallel 32
   pctfree 1 initrans 3
   compute statistics;
 
@@ -134,17 +135,17 @@ create unique index bmsql_customer_idx
 -- , partition icust2_25
 -- , partition icust2_26
 -- )
-  parallel 256
+  parallel 32
   pctfree 1 initrans 3
   compute statistics;
 
 -- create unique index bmsql_oorder_pkey
 --   on bmsql_oorder (o_w_id, o_d_id, o_id)
---   parallel 256
+--   parallel 32
 --   compute statistics;
 
 create unique index bmsql_oorder_pkey
-  on bmsql_oorder (o_w_id, o_d_id, o_c_id, o_id)
+  on bmsql_oorder (o_w_id, o_d_id, o_c_id, o_id) -- reverse
 --   local (
 -- partition ioorder2_0
 -- , partition ioorder2_1
@@ -579,7 +580,7 @@ create unique index bmsql_oorder_pkey
 -- , partition ioorder2_430
 -- , partition ioorder2_431
 -- )
-  parallel 256
+  parallel 32
   pctfree 25 initrans 4
   compute statistics;
 
@@ -590,7 +591,7 @@ alter table bmsql_order_line add constraint bmsql_order_line_pkey
   primary key (ol_w_id, ol_d_id, ol_o_id, ol_number);
 
 create unique index bmsql_stock_pkey
-  on bmsql_stock (s_i_id, s_w_id)
+  on bmsql_stock (s_i_id, s_w_id) -- reverse
 --   local(
 -- partition istock_0
 -- , partition istock_1
@@ -620,7 +621,7 @@ create unique index bmsql_stock_pkey
 -- , partition istock_25
 -- , partition istock_26
 -- )
-  parallel 256
+  parallel 32
   pctfree 1 initrans 3
   compute statistics;
 
