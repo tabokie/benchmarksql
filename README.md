@@ -6,12 +6,26 @@ CHANGE LOG:
 
 Local Version:
 --------------------------------------
+
+Baseline Model:
   +  Use Oracle PL/SQL for transaction (on-going)
   +  Add terminal range config to better support multi-driver bench
+  +  Add warm-up config
   +  Fix minor inconsistencies w.r.t. official tpc-c standard
   +  Update sql script for tablespace tuning
   +  Enhanced report generating
   +  Fix tons of format issues
+
+Extended Model
+  +  Hash Clustering
+  +  Partition and Reference Partition
+  +  Reverse Index
+  +  Parallel PL/SQL
+  +  Cluster Sort
+  +  Result Cache
+  +  Index Skip Scan
+  +  Partition by Outer Join
+  +  PL/SQL Native Compilation
 
 Version 5.0 lussman & jannicash:
 --------------------------------------
