@@ -571,6 +571,9 @@ public class jTPCC implements jTPCCConfig
                         printMessage(terminalName + "\t" + terminalWarehouseID);
                     }
 
+                    if (warmupTimeMillis < 60000) {
+                        warmed.set(true);
+                    }
                     sessionWarmedTargetTime = warmupTimeMillis;
                     sessionEndTargetTime = executionTimeMillis + warmupTimeMillis;
                     signalTerminalsRequestEndSent = false;
