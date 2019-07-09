@@ -10,12 +10,31 @@ CREATE OR REPLACE TYPE MY_VARCHAR_ARR IS VARRAY(15) OF varchar(16);
 /
 CREATE OR REPLACE TYPE MY_TS_ARR IS VARRAY(15) OF TIMESTAMP;
 /
-
+/
+CREATE OR REPLACE TYPE MY_CHAR_ARR IS VARRAY(15) OF CHAR(24);
+/
 /
 create or replace package bmsql_type AS
 TYPE MY_INT_TABLE IS TABLE OF INTEGER INDEX BY BINARY_INTEGER;
 TYPE MY_ROWID_TABLE IS TABLE OF ROWID INDEX BY BINARY_INTEGER;
+TYPE MY_NUM_TABLE IS TABLE OF NUMBER INDEX BY BINARY_INTEGER;
+TYPE MY_CHAR_TABLE IS TABLE OF CHAR(24) INDEX BY BINARY_INTEGER;
+idx_heler MY_INT_ARR := MY_INT_ARR(1,2,3,4,5,6,7,8,9,10,11,12,13,14,15);
 END bmsql_type;
+/
+
+/
+CREATE OR REPLACE VIEW bmsql_stock_item
+(i_id, s_w_id, i_price, i_name, i_data, s_data, s_quantity,
+ s_order_cnt, s_ytd, s_remote_cnt,
+ s_dist_01, s_dist_02, s_dist_03, s_dist_04, s_dist_05,
+ s_dist_06, s_dist_07, s_dist_08, s_dist_09, s_dist_10)
+AS
+SELECT i.i_id, s_w_id, i.i_price, i.i_name, i.i_data,
+s_data, s_quantity, s_order_cnt, s_ytd, s_remote_cnt,
+s_dist_01, s_dist_02, s_dist_03, s_dist_04, s_dist_05,
+s_dist_06, s_dist_07, s_dist_08, s_dist_09, s_dist_10
+FROM bmsql_stock s, bmsql_item i WHERE i.i_id = s.s_i_id;
 /
 
 /
@@ -41,18 +60,219 @@ v_item_price decimal(5,2);
 v_item_data varchar(50);
 v_stock_quantity integer;
 v_stock_data varchar(50);
-v_dist_1 char(24);
-v_dist_2 char(24);
-v_dist_3 char(24);
-v_dist_4 char(24);
-v_dist_5 char(24);
-v_dist_6 char(24);
-v_dist_7 char(24);
-v_dist_8 char(24);
-v_dist_9 char(24);
-v_dist_10 char(24);
-v_ol_amount decimal(6,2);
-v_update_stock_3 integer;
+v_dist bmsql_type.MY_CHAR_TABLE; -- must be table
+v_ol_amount bmsql_type.MY_NUM_TABLE;
+idx PLS_INTEGER;
+dummy_local PLS_INTEGER := in_d_id;
+cache_ol_cnt PLS_INTEGER := in_ol_cnt;
+
+PROCEDURE u1 IS
+BEGIN
+    FORALL idx IN 1..cache_ol_cnt
+        UPDATE bmsql_stock_item
+        SET s_order_cnt = s_order_cnt + 1,
+        s_ytd = s_ytd + in_ol_quantity(idx),
+        s_remote_cnt = s_remote_cnt + (CASE WHEN in_w_id = in_ol_supply_wid(idx)
+                                       THEN 0 ELSE 1 END),
+        s_quantity = (CASE WHEN s_quantity < in_ol_quantity(idx) + 10
+                      THEN s_quantity + 91
+                      ELSE s_quantity
+                      END) - in_ol_quantity(idx)
+        WHERE i_id = in_ol_iid(idx)
+        AND s_w_id = in_ol_supply_wid(idx)
+        RETURNING s_dist_01, i_price * in_ol_quantity(idx)
+    BULK COLLECT INTO v_dist, v_ol_amount;
+END u1;
+
+PROCEDURE u2 IS
+BEGIN
+    FORALL idx IN 1..cache_ol_cnt
+        UPDATE bmsql_stock_item
+        SET s_order_cnt = s_order_cnt + 1,
+        s_ytd = s_ytd + in_ol_quantity(idx),
+        s_remote_cnt = s_remote_cnt + (CASE WHEN in_w_id = in_ol_supply_wid(idx)
+                                       THEN 0 ELSE 1 END),
+        s_quantity = (CASE WHEN s_quantity < in_ol_quantity(idx) + 10
+                      THEN s_quantity + 91
+                      ELSE s_quantity
+                      END) - in_ol_quantity(idx)
+        WHERE i_id = in_ol_iid(idx)
+        AND s_w_id = in_ol_supply_wid(idx)
+        RETURNING s_dist_02, i_price * in_ol_quantity(idx)
+    BULK COLLECT INTO v_dist, v_ol_amount;
+END u2;
+
+PROCEDURE u3 IS
+BEGIN
+    FORALL idx IN 1..cache_ol_cnt
+        UPDATE bmsql_stock_item
+        SET s_order_cnt = s_order_cnt + 1,
+        s_ytd = s_ytd + in_ol_quantity(idx),
+        s_remote_cnt = s_remote_cnt + (CASE WHEN in_w_id = in_ol_supply_wid(idx)
+                                       THEN 0 ELSE 1 END),
+        s_quantity = (CASE WHEN s_quantity < in_ol_quantity(idx) + 10
+                      THEN s_quantity + 91
+                      ELSE s_quantity
+                      END) - in_ol_quantity(idx)
+        WHERE i_id = in_ol_iid(idx)
+        AND s_w_id = in_ol_supply_wid(idx)
+        RETURNING s_dist_03, i_price * in_ol_quantity(idx)
+    BULK COLLECT INTO v_dist, v_ol_amount;
+END u3;
+
+PROCEDURE u4 IS
+BEGIN
+    FORALL idx IN 1..cache_ol_cnt
+        UPDATE bmsql_stock_item
+        SET s_order_cnt = s_order_cnt + 1,
+        s_ytd = s_ytd + in_ol_quantity(idx),
+        s_remote_cnt = s_remote_cnt + (CASE WHEN in_w_id = in_ol_supply_wid(idx)
+                                       THEN 0 ELSE 1 END),
+        s_quantity = (CASE WHEN s_quantity < in_ol_quantity(idx) + 10
+                      THEN s_quantity + 91
+                      ELSE s_quantity
+                      END) - in_ol_quantity(idx)
+        WHERE i_id = in_ol_iid(idx)
+        AND s_w_id = in_ol_supply_wid(idx)
+        RETURNING s_dist_04, i_price * in_ol_quantity(idx)
+    BULK COLLECT INTO v_dist, v_ol_amount;
+END u4;
+
+PROCEDURE u5 IS
+BEGIN
+    FORALL idx IN 1..cache_ol_cnt
+        UPDATE bmsql_stock_item
+        SET s_order_cnt = s_order_cnt + 1,
+        s_ytd = s_ytd + in_ol_quantity(idx),
+        s_remote_cnt = s_remote_cnt + (CASE WHEN in_w_id = in_ol_supply_wid(idx)
+                                       THEN 0 ELSE 1 END),
+        s_quantity = (CASE WHEN s_quantity < in_ol_quantity(idx) + 10
+                      THEN s_quantity + 91
+                      ELSE s_quantity
+                      END) - in_ol_quantity(idx)
+        WHERE i_id = in_ol_iid(idx)
+        AND s_w_id = in_ol_supply_wid(idx)
+        RETURNING s_dist_05, i_price * in_ol_quantity(idx)
+    BULK COLLECT INTO v_dist, v_ol_amount;
+END u5;
+
+PROCEDURE u6 IS
+BEGIN
+    FORALL idx IN 1..cache_ol_cnt
+        UPDATE bmsql_stock_item
+        SET s_order_cnt = s_order_cnt + 1,
+        s_ytd = s_ytd + in_ol_quantity(idx),
+        s_remote_cnt = s_remote_cnt + (CASE WHEN in_w_id = in_ol_supply_wid(idx)
+                                       THEN 0 ELSE 1 END),
+        s_quantity = (CASE WHEN s_quantity < in_ol_quantity(idx) + 10
+                      THEN s_quantity + 91
+                      ELSE s_quantity
+                      END) - in_ol_quantity(idx)
+        WHERE i_id = in_ol_iid(idx)
+        AND s_w_id = in_ol_supply_wid(idx)
+        RETURNING s_dist_06, i_price * in_ol_quantity(idx)
+    BULK COLLECT INTO v_dist, v_ol_amount;
+END u6;
+
+PROCEDURE u7 IS
+BEGIN
+    FORALL idx IN 1..cache_ol_cnt
+        UPDATE bmsql_stock_item
+        SET s_order_cnt = s_order_cnt + 1,
+        s_ytd = s_ytd + in_ol_quantity(idx),
+        s_remote_cnt = s_remote_cnt + (CASE WHEN in_w_id = in_ol_supply_wid(idx)
+                                       THEN 0 ELSE 1 END),
+        s_quantity = (CASE WHEN s_quantity < in_ol_quantity(idx) + 10
+                      THEN s_quantity + 91
+                      ELSE s_quantity
+                      END) - in_ol_quantity(idx)
+        WHERE i_id = in_ol_iid(idx)
+        AND s_w_id = in_ol_supply_wid(idx)
+        RETURNING s_dist_07, i_price * in_ol_quantity(idx)
+    BULK COLLECT INTO v_dist, v_ol_amount;
+END u7;
+
+PROCEDURE u8 IS
+BEGIN
+    FORALL idx IN 1..cache_ol_cnt
+        UPDATE bmsql_stock_item
+        SET s_order_cnt = s_order_cnt + 1,
+        s_ytd = s_ytd + in_ol_quantity(idx),
+        s_remote_cnt = s_remote_cnt + (CASE WHEN in_w_id = in_ol_supply_wid(idx)
+                                       THEN 0 ELSE 1 END),
+        s_quantity = (CASE WHEN s_quantity < in_ol_quantity(idx) + 10
+                      THEN s_quantity + 91
+                      ELSE s_quantity
+                      END) - in_ol_quantity(idx)
+        WHERE i_id = in_ol_iid(idx)
+        AND s_w_id = in_ol_supply_wid(idx)
+        RETURNING s_dist_08, i_price * in_ol_quantity(idx)
+    BULK COLLECT INTO v_dist, v_ol_amount;
+END u8;
+
+PROCEDURE u9 IS
+BEGIN
+    FORALL idx IN 1..cache_ol_cnt
+        UPDATE bmsql_stock_item
+        SET s_order_cnt = s_order_cnt + 1,
+        s_ytd = s_ytd + in_ol_quantity(idx),
+        s_remote_cnt = s_remote_cnt + (CASE WHEN in_w_id = in_ol_supply_wid(idx)
+                                       THEN 0 ELSE 1 END),
+        s_quantity = (CASE WHEN s_quantity < in_ol_quantity(idx) + 10
+                      THEN s_quantity + 91
+                      ELSE s_quantity
+                      END) - in_ol_quantity(idx)
+        WHERE i_id = in_ol_iid(idx)
+        AND s_w_id = in_ol_supply_wid(idx)
+        RETURNING s_dist_09, i_price * in_ol_quantity(idx)
+    BULK COLLECT INTO v_dist, v_ol_amount;
+END u9;
+
+PROCEDURE u10 IS
+BEGIN
+    FORALL idx IN 1..cache_ol_cnt
+        UPDATE bmsql_stock_item
+        SET s_order_cnt = s_order_cnt + 1,
+        s_ytd = s_ytd + in_ol_quantity(idx),
+        s_remote_cnt = s_remote_cnt + (CASE WHEN in_w_id = in_ol_supply_wid(idx)
+                                       THEN 0 ELSE 1 END),
+        s_quantity = (CASE WHEN s_quantity < in_ol_quantity(idx) + 10
+                      THEN s_quantity + 91
+                      ELSE s_quantity
+                      END) - in_ol_quantity(idx)
+        WHERE i_id = in_ol_iid(idx)
+        AND s_w_id = in_ol_supply_wid(idx)
+        RETURNING s_dist_10, i_price * in_ol_quantity(idx)
+    BULK COLLECT INTO v_dist, v_ol_amount;
+END u10;
+
+PROCEDURE fix_item IS
+rows_lost PLS_INTEGER;
+max_index PLS_INTEGER;
+temp_index PLS_INTEGER;
+BEGIN
+idx := 1;
+rows_lost := 0;
+max_index := dummy_local;
+WHILE (max_index != cache_ol_cnt) LOOP
+    WHILE (idx <= sql%rowcount AND sql%bulk_rowcount(idx+rows_lost) = 1) LOOP
+        idx := idx + 1;
+    END LOOP;
+    temp_index := max_index;
+    WHILE (temp_index >= idx + rows_lost) LOOP
+        v_ol_amount(temp_index + 1) := v_ol_amount(temp_index);
+        v_dist(temp_index + 1) := v_dist(temp_index);
+        temp_index := temp_index - 1;
+    END LOOP;
+    IF (idx + rows_lost <= cache_ol_cnt) THEN
+        v_ol_amount(idx + rows_lost) := 0;
+        v_dist(idx + rows_lost) := NULL;
+        rows_lost := rows_lost + 1;
+        max_index := max_index + 1;
+    END IF;
+END LOOP;
+END fix_item;
+
 BEGIN
 SELECT d_next_o_id INTO v_district_oid
     FROM bmsql_district
@@ -67,55 +287,42 @@ UPDATE bmsql_district
 INSERT INTO bmsql_oorder
     (o_id, o_d_id, o_w_id, o_c_id, o_entry_d, o_ol_cnt, o_all_local)
     VALUES
-    (v_district_oid, in_d_id, in_w_id, in_c_id, CURRENT_TIMESTAMP, in_ol_cnt, in_o_all_local);
+    (v_district_oid, in_d_id, in_w_id, in_c_id, CURRENT_TIMESTAMP, cache_ol_cnt, in_o_all_local);
 INSERT INTO bmsql_new_order
     (no_o_id, no_d_id, no_w_id)
     VALUES
     (v_district_oid, in_d_id, in_w_id);
-FOR i IN 1..in_ol_cnt LOOP
-    -- This could be empty (1%)
-    SELECT i_price, i_name, i_data
-        INTO v_item_price, v_item_name, v_item_data
-        FROM bmsql_item WHERE i_id = in_ol_iid(i);
-    SELECT s_quantity, s_dist_01, s_dist_02, s_dist_03, s_dist_04, s_dist_05, s_dist_06, s_dist_07, s_dist_08, s_dist_09, s_dist_10
-        INTO v_stock_quantity, v_dist_1, v_dist_2, v_dist_3, v_dist_4, v_dist_5, v_dist_6, v_dist_7, v_dist_8, v_dist_9, v_dist_10
-        FROM bmsql_stock
-        WHERE s_w_id = in_ol_supply_wid(i) AND s_i_id = in_ol_iid(i)
-        FOR UPDATE;
-    CASE in_d_id
-        WHEN 2 THEN v_dist_1 := v_dist_2;
-        WHEN 3 THEN v_dist_1 := v_dist_3;
-        WHEN 4 THEN v_dist_1 := v_dist_4;
-        WHEN 5 THEN v_dist_1 := v_dist_5;
-        WHEN 6 THEN v_dist_1 := v_dist_6;
-        WHEN 7 THEN v_dist_1 := v_dist_7;
-        WHEN 8 THEN v_dist_1 := v_dist_8;
-        WHEN 9 THEN v_dist_1 := v_dist_9;
-        WHEN 10 THEN v_dist_1 := v_dist_10;
-        ELSE EXIT;
-    END CASE;
-    v_ol_amount := v_item_price * in_ol_quantity(i);
-    IF v_stock_quantity >= in_ol_quantity(i) + 10 THEN
-        v_stock_quantity := v_stock_quantity - in_ol_quantity(i);
+
+IF (dummy_local < 6) THEN
+    IF (dummy_local < 3) THEN
+        IF (dummy_local = 1) THEN u1;
+        ELSE u2; END IF;
     ELSE
-        v_stock_quantity := v_stock_quantity + 91 - in_ol_quantity(i);
+        IF (dummy_local = 3) THEN u3;
+        ELSIF (dummy_local = 4) THEN u4;
+        ELSE u5; END IF;
     END IF;
-    IF in_ol_supply_wid(i) = in_w_id THEN
-        v_update_stock_3 := 0;
+ELSE
+    IF (dummy_local < 8) THEN
+        IF (dummy_local = 6) THEN u6;
+        ELSE u7; END IF;
     ELSE
-        v_update_stock_3 := 1;
+        IF (dummy_local = 8) THEN u8;
+        ELSIF (dummy_local = 9) THEN u9;
+        ELSE u10; END IF;
     END IF;
-    UPDATE bmsql_stock
-        SET s_quantity = v_stock_quantity,
-        s_ytd = s_ytd + in_ol_quantity(i),
-        s_order_cnt = s_order_cnt + 1,
-        s_remote_cnt = s_remote_cnt + v_update_stock_3
-        WHERE s_w_id = in_ol_supply_wid(i) AND s_i_id = in_ol_iid(i);
-    INSERT INTO bmsql_order_line
-        (ol_o_id, ol_d_id, ol_w_id, ol_number, ol_i_id, ol_supply_w_id, ol_quantity, ol_amount, ol_dist_info)
-        VALUES
-        (v_district_oid, in_d_id, in_w_id, i, in_ol_iid(i), in_ol_supply_wid(i), in_ol_quantity(i), v_ol_amount, v_dist_1);
-END LOOP;
+END IF;
+dummy_local := sql%rowcount;
+IF (dummy_local != cache_ol_cnt) THEN
+    fix_item;
+END IF;
+FORALL idx IN 1..dummy_local
+    INSERT INTO bmsql_order_line (ol_o_id, ol_d_id, ol_w_id, ol_number,
+                        ol_i_id, ol_supply_w_id, ol_quantity, ol_amount, ol_dist_info)
+    VALUES (v_district_oid, in_d_id, in_w_id, bmsql_type.idx_heler(idx),
+            in_ol_iid(idx), in_ol_supply_wid(idx), in_ol_quantity(idx), v_ol_amount(idx),
+            v_dist(idx));
+
 COMMIT;
 EXCEPTION
     WHEN NO_DATA_FOUND THEN
@@ -198,45 +405,39 @@ PROCEDURE bmsql_func_deliverybg
     in_o_carrier_id IN integer
 ) as
 -- CURSOR SelectOldestNewOrder is SELECT no_o_id FROM bmsql_new_order WHERE no_w_id = in_w_id AND no_d_id = i_d_id ORDER BY no_o_id ASC;
-v_o_id integer;
-v_c_id integer;
-v_sum_ol_amount decimal;
+v_order_id bmsql_type.MY_INT_TABLE;
+v_d_id bmsql_type.MY_INT_TABLE;
+v_ordcnt PLS_INTEGER;
+v_o_c_id bmsql_type.MY_INT_TABLE;
+v_sums bmsql_type.MY_NUM_TABLE;
 BEGIN
-FOR i_d_id IN 1..10 LOOP
-    v_o_id := -1;
-    WHILE v_o_id < 0 LOOP
-        -- FETCH SelectOldestNewOrder INTO v_o_id;
-        -- EXIT WHEN SelectOldestNewOrder%NOTFOUND;
-        -- SELECT no_o_id INTO v_o_id FROM bmsql_new_order WHERE no_w_id = in_w_id AND no_d_id = i_d_id ORDER BY no_o_id ASC;
-        -- EXIT WHEN sql%NOTFOUND;
-        SELECT NVL(no_o_id, v_o_id) INTO v_o_id
-            FROM
-            (SELECT no_o_id FROM bmsql_new_order
-                WHERE no_w_id = in_w_id AND no_d_id = i_d_id
-                ORDER BY no_o_id ASC);
-        DELETE FROM bmsql_new_order
-            WHERE no_w_id = in_w_id AND no_d_id = i_d_id AND no_o_id = v_o_id;
-        IF sql%rowcount = 0 THEN
-            v_o_id := -1;
-        END IF;
-    END LOOP;
-    if v_o_id < 0 THEN
-        CONTINUE;
-    END IF;
+
+FORALL d IN 1..10
+    DELETE FROM bmsql_new_order N
+        WHERE no_d_id = bmsql_type.idx_heler(d)
+        AND no_w_id = in_w_id AND no_o_id = (
+            SELECT min(no_o_id) FROM bmsql_new_order
+                WHERE no_d_id = N.no_d_id
+                AND no_w_id = N.no_w_id)
+        RETURNING no_d_id, no_o_id BULK COLLECT INTO v_d_id, v_order_id;
+v_ordcnt := sql%rowcount;
+FORALL o in 1..v_ordcnt
     UPDATE bmsql_oorder SET o_carrier_id = in_o_carrier_id
-        WHERE o_w_id = in_w_id AND o_d_id = i_d_id AND o_id = v_o_id;
-    SELECT o_c_id INTO v_c_id FROM bmsql_oorder
-        WHERE o_w_id = in_w_id AND o_d_id = i_d_id AND o_id = v_o_id;
+        WHERE o_id = v_order_id(o) AND o_d_id = v_d_id(o)
+        AND o_w_id = in_w_id
+        RETURNING o_c_id BULK COLLECT INTO v_o_c_id;
+FORALL o in 1..v_ordcnt
     UPDATE bmsql_order_line SET ol_delivery_d = CURRENT_TIMESTAMP
-        WHERE ol_w_id = in_w_id AND ol_d_id = i_d_id AND ol_o_id = v_o_id;
-    SELECT sum(ol_amount) INTO v_sum_ol_amount
-        FROM bmsql_order_line
-        WHERE ol_w_id = in_w_id AND ol_d_id = i_d_id AND ol_o_id = v_o_id;
+        WHERE ol_w_id = in_w_id AND ol_d_id = v_d_id(o)
+        AND ol_i_id = v_order_id(o)
+        RETURNING sum(ol_amount) BULK COLLECT INTO v_sums;
+FORALL c IN 1..v_ordcnt
     UPDATE bmsql_customer
-        SET c_balance = c_balance + v_sum_ol_amount,
+        SET c_balance = c_balance + v_sums(c),
         c_delivery_cnt = c_delivery_cnt + 1
-        WHERE c_w_id = in_w_id AND c_d_id = i_d_id AND c_id = v_c_id;
-END LOOP;
+        WHERE c_w_id = in_w_id AND c_d_id = v_d_id(c)
+        AND c_id = v_o_c_id(c);
+
 COMMIT;
 END bmsql_func_deliverybg;
 /
