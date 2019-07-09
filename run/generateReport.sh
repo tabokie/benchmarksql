@@ -1,13 +1,22 @@
 #!/usr/bin/env bash
 
 if [ $# -lt 1 ] ; then
-    echo "usage: $(basename $0) RESULT_DIR [SKIP_MINUTES]" >&2
+    echo "usage: $(basename $0) RESULT_DIR [OUTPUT_NAME] [SKIP_MINUTES]" >&2
     exit 2
 fi
 
 TABLE_WIDTH="1100px"
+
 if [ $# -gt 1 ] ; then
-  SKIP=$2
+  OUT=${2}.html
+else
+  OUT=$(dirname ${1}/.dummy).html
+fi
+
+echo output report to ${OUT}
+
+if [ $# -gt 2 ] ; then
+  SKIP=$3
 else
   SKIP=0
 fi
@@ -331,6 +340,6 @@ _EOF_
 # We do the dirname-trick to strip any trailing / that might
 # have resulted from tab-completion.
 # ----
-cp report.html ../$(dirname ${1}/.dummy).html
+cp report.html ../$OUT
 
 echo "OK"
