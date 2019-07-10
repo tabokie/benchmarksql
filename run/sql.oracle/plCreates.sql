@@ -212,7 +212,7 @@ FOR i_d_id IN 1..10 LOOP
         SELECT NVL(no_o_id, v_o_id) INTO v_o_id
             FROM
             (SELECT no_o_id FROM bmsql_new_order
-                WHERE no_w_id = in_w_id AND no_d_id = i_d_id
+                WHERE no_w_id = in_w_id AND no_d_id = i_d_id AND ROWNUM = 1
                 ORDER BY no_o_id ASC);
         DELETE FROM bmsql_new_order
             WHERE no_w_id = in_w_id AND no_d_id = i_d_id AND no_o_id = v_o_id;
