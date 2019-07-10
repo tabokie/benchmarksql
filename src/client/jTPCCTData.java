@@ -1869,6 +1869,7 @@ public class jTPCCTData
         targetSize              = parent.targetSize;
         terminalWarehouse       = parent.terminalWarehouse;
         terminalDistrict        = parent.terminalDistrict;
+        terminalPlMode          = parent.terminalPlMode;
 
         transType       = TT_DELIVERY_BG;
         transDue        = due;
