@@ -19,23 +19,21 @@ TYPE MY_INT_TABLE IS TABLE OF INTEGER INDEX BY BINARY_INTEGER;
 TYPE MY_ROWID_TABLE IS TABLE OF ROWID INDEX BY BINARY_INTEGER;
 TYPE MY_NUM_TABLE IS TABLE OF NUMBER INDEX BY BINARY_INTEGER;
 TYPE MY_CHAR_TABLE IS TABLE OF CHAR(24) INDEX BY BINARY_INTEGER;
-idx_heler MY_INT_ARR := MY_INT_ARR(1,2,3,4,5,6,7,8,9,10,11,12,13,14,15);
+idx_helper MY_INT_ARR := MY_INT_ARR(1,2,3,4,5,6,7,8,9,10,11,12,13,14,15);
 END bmsql_type;
 /
 
-/
 CREATE OR REPLACE VIEW bmsql_stock_item
 (i_id, s_w_id, i_price, i_name, i_data, s_data, s_quantity,
  s_order_cnt, s_ytd, s_remote_cnt,
  s_dist_01, s_dist_02, s_dist_03, s_dist_04, s_dist_05,
  s_dist_06, s_dist_07, s_dist_08, s_dist_09, s_dist_10)
 AS
-SELECT i.i_id, s_w_id, i.i_price, i.i_name, i.i_data,
+SELECT /*+ leading(s) use_nl(i) */ i.i_id, s_w_id, i.i_price, i.i_name, i.i_data,
 s_data, s_quantity, s_order_cnt, s_ytd, s_remote_cnt,
 s_dist_01, s_dist_02, s_dist_03, s_dist_04, s_dist_05,
 s_dist_06, s_dist_07, s_dist_08, s_dist_09, s_dist_10
 FROM bmsql_stock s, bmsql_item i WHERE i.i_id = s.s_i_id;
-/
 
 /
 create or replace
@@ -287,7 +285,8 @@ UPDATE bmsql_district
 INSERT INTO bmsql_oorder
     (o_id, o_d_id, o_w_id, o_c_id, o_entry_d, o_ol_cnt, o_all_local)
     VALUES
-    (v_district_oid, in_d_id, in_w_id, in_c_id, CURRENT_TIMESTAMP, cache_ol_cnt, in_o_all_local);
+    (v_district_oid, in_d_id, in_w_id, in_c_id,
+    CURRENT_TIMESTAMP, cache_ol_cnt, in_o_all_local);
 INSERT INTO bmsql_new_order
     (no_o_id, no_d_id, no_w_id)
     VALUES
@@ -318,10 +317,10 @@ IF (dummy_local != cache_ol_cnt) THEN
 END IF;
 FORALL idx IN 1..dummy_local
     INSERT INTO bmsql_order_line (ol_o_id, ol_d_id, ol_w_id, ol_number,
-                        ol_i_id, ol_supply_w_id, ol_quantity, ol_amount, ol_dist_info)
-    VALUES (v_district_oid, in_d_id, in_w_id, bmsql_type.idx_heler(idx),
-            in_ol_iid(idx), in_ol_supply_wid(idx), in_ol_quantity(idx), v_ol_amount(idx),
-            v_dist(idx));
+        ol_i_id, ol_supply_w_id, ol_quantity, ol_amount, ol_dist_info)
+    VALUES (v_district_oid, in_d_id, in_w_id, bmsql_type.idx_helper(idx),
+        in_ol_iid(idx), in_ol_supply_wid(idx), in_ol_quantity(idx),
+        v_ol_amount(idx), v_dist(idx));
 
 COMMIT;
 EXCEPTION
@@ -378,24 +377,31 @@ IF v_c_credit = 'GC' THEN
         c_payment_cnt = c_payment_cnt + 1
         WHERE c_w_id = in_c_w_id AND c_d_id = in_c_d_id AND c_id = v_c_id;
 ELSE
-    SELECT c_data INTO v_c_data
-        FROM bmsql_customer
-        WHERE c_w_id = in_c_w_id AND c_d_id = in_c_d_id AND c_id = v_c_id;
--- omit c_data extension
     UPDATE bmsql_customer
         SET c_balance = c_balance - in_h_amount,
         c_ytd_payment = c_ytd_payment + in_h_amount,
         c_payment_cnt = c_payment_cnt + 1,
         c_data = v_c_data
-        WHERE c_w_id = in_c_w_id AND c_d_id = in_c_d_id AND c_id = v_c_id;
+        WHERE c_w_id = in_c_w_id AND c_d_id = in_c_d_id AND c_id = v_c_id
+        RETURNING c_data INTO v_c_data;
     INSERT INTO bmsql_history
         (h_c_id, h_c_d_id, h_c_w_id, h_d_id, h_w_id, h_date, h_amount, h_data)
         VALUES
-        (v_c_id, in_c_d_id, in_c_w_id, in_d_id, in_w_id, CURRENT_TIMESTAMP, in_h_amount, CONCAT(v_w_name, v_d_name));
+        (v_c_id, in_c_d_id, in_c_w_id, in_d_id, in_w_id,
+        CURRENT_TIMESTAMP, in_h_amount, CONCAT(v_w_name, v_d_name));
 END IF;
 COMMIT;
 END bmsql_func_payment;
 /
+
+-- needs @investigate
+-- possible optimization:
+-- CREATE OR REPLACE VIEW bmsql_oorder_line
+-- (i_id, w_id, d_id, o_carrier_id, ol_delivery_d)
+-- AS
+-- SELECT /*+ leading(o) use_nl(ol) */ o.o_id, o.o_w_id, o.o_d_id, o.o_carrier_id, ol.ol_delivery_d
+-- FROM bmsql_oorder o, bmsql_order_line ol
+-- WHERE o.o_id = ol.ol_i_id AND o.o_w_id = ol.ol_w_id AND o.o_d_id = ol.ol_d_id;
 
 /
 create or replace
@@ -404,32 +410,34 @@ PROCEDURE bmsql_func_deliverybg
     in_w_id IN integer,
     in_o_carrier_id IN integer
 ) as
--- CURSOR SelectOldestNewOrder is SELECT no_o_id FROM bmsql_new_order WHERE no_w_id = in_w_id AND no_d_id = i_d_id ORDER BY no_o_id ASC;
 v_order_id bmsql_type.MY_INT_TABLE;
 v_d_id bmsql_type.MY_INT_TABLE;
 v_ordcnt PLS_INTEGER;
 v_o_c_id bmsql_type.MY_INT_TABLE;
 v_sums bmsql_type.MY_NUM_TABLE;
+v_current_ts TIMESTAMP := CURRENT_TIMESTAMP;
 BEGIN
 
 FORALL d IN 1..10
     DELETE FROM bmsql_new_order N
-        WHERE no_d_id = bmsql_type.idx_heler(d)
+        WHERE no_d_id = bmsql_type.idx_helper(d)
         AND no_w_id = in_w_id AND no_o_id = (
             SELECT min(no_o_id) FROM bmsql_new_order
                 WHERE no_d_id = N.no_d_id
                 AND no_w_id = N.no_w_id)
         RETURNING no_d_id, no_o_id BULK COLLECT INTO v_d_id, v_order_id;
 v_ordcnt := sql%rowcount;
+-- here is a doubtful inconsistency w.r.t. fdr
+-- use order_line.ol_o_id or ol_i_id
 FORALL o in 1..v_ordcnt
     UPDATE bmsql_oorder SET o_carrier_id = in_o_carrier_id
         WHERE o_id = v_order_id(o) AND o_d_id = v_d_id(o)
         AND o_w_id = in_w_id
         RETURNING o_c_id BULK COLLECT INTO v_o_c_id;
 FORALL o in 1..v_ordcnt
-    UPDATE bmsql_order_line SET ol_delivery_d = CURRENT_TIMESTAMP
+    UPDATE bmsql_order_line SET ol_delivery_d = v_current_ts
         WHERE ol_w_id = in_w_id AND ol_d_id = v_d_id(o)
-        AND ol_i_id = v_order_id(o)
+        AND ol_o_id = v_order_id(o)
         RETURNING sum(ol_amount) BULK COLLECT INTO v_sums;
 FORALL c IN 1..v_ordcnt
     UPDATE bmsql_customer
@@ -452,6 +460,15 @@ PROCEDURE bmsql_func_stocklevel
 ) AS
 result integer;
 BEGIN
+-- needs @investigate
+-- faster than fdr version:
+-- SELECT /*+ nocache(stok) */ count(DISTINCT s_i_id)
+--     FROM ordl, stok, dist
+--     WHERE d_id = :d_id AND d_w_id = :w_id AND d_id = ol_d_id
+--     AND d_w_id = ol_w_id AND ol_i_id = s_i_id AND ol_w_id = s_w_id
+--     AND s_quantity < :threshold AND
+--     ol_o_id BETWEEN (d_next_o_id - 20) AND (d_next_o_id - 1)
+--     ORDER BY ol_o_id DESC;
 SELECT count(1) INTO result FROM (
     SELECT s_w_id, s_i_id, s_quantity
         FROM bmsql_stock
@@ -511,7 +528,8 @@ CURSOR cursor IS
     WHERE ol_w_id = in_w_id AND ol_d_id = in_d_id
 	AND ol_o_id = v_o_id
     ORDER BY ol_w_id, ol_d_id, ol_o_id, ol_number;
-v_order_line cursor%rowtype;
+TYPE order_line_table IS TABLE OF cursor%rowtype INDEX BY BINARY_INTEGER;
+v_order_line order_line_table;
 out_ol_supply_w_id MY_INT_ARR := MY_INT_ARR();
 out_ol_i_id MY_INT_ARR := MY_INT_ARR();
 out_ol_quantity MY_INT_ARR := MY_INT_ARR();
@@ -526,7 +544,6 @@ out_ol_amount.EXTEND(15);
 out_ol_delivery_d.EXTEND(15);
 v_ol_delivery_d.EXTEND(15);
 
--- if c_last != null
 if in_c_last IS NOT NULL THEN
     bmsql_func_rowid_from_clast(in_w_id, in_d_id, in_c_last, v_rowid);
     SELECT c_first, c_middle, c_balance, c_id
@@ -550,32 +567,8 @@ SELECT o_id, o_entry_d, o_carrier_id
     );
 
 OPEN cursor;
-FETCH cursor INTO v_order_line;
-
-WHILE cursor%found LOOP
-    out_ol_i_id(v_ol_idx) := v_order_line.ol_i_id;
-    out_ol_supply_w_id(v_ol_idx) := v_order_line.ol_supply_w_id;
-    out_ol_quantity(v_ol_idx) := v_order_line.ol_quantity;
-    out_ol_amount(v_ol_idx) := v_order_line.ol_amount;
-    v_ol_delivery_d(v_ol_idx) := v_order_line.ol_delivery_d;
-    v_ol_idx := v_ol_idx + 1;
-    FETCH cursor INTO v_order_line;
-END LOOP;
-
+FETCH cursor BULK COLLECT INTO v_order_line LIMIT 15;
 CLOSE cursor;
-
-WHILE v_ol_idx < 16 LOOP
-    out_ol_i_id (v_ol_idx) := 0;
-    out_ol_supply_w_id(v_ol_idx) := 0;
-    out_ol_quantity(v_ol_idx) := 0;
-    out_ol_amount(v_ol_idx) := 0.0;
-    v_ol_delivery_d(v_ol_idx) := NULL;
-    v_ol_idx := v_ol_idx + 1;
-END LOOP;
-
-FOR v_cnt IN 1..15 LOOP
-    out_ol_delivery_d(v_cnt) := TO_CHAR(v_ol_delivery_d(v_cnt), 'YYYY-MM-DD');
-END LOOP;
 
 COMMIT;
 END bmsql_func_orderstatus;
