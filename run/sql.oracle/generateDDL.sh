@@ -1,81 +1,116 @@
-create table bmsql_config (
+if [ $# -ne 1 ] ; then
+    echo "usage: $(basename $0) WAREHOUSES" >&2
+    exit 2
+fi
+
+OUTPUT_SQL=tableCreates.sql
+
+declare -i nWarehouse=$1
+## cardinality:
+# district = 10x warehouse
+declare -i nDistrict=$nWarehouse*10
+# customer = 30000x
+declare -i nCustomer=$nWarehouse*30000
+# history = 30000x
+declare -i nHistory=$nWarehouse*30000
+# order = 30000x
+nOrder=56250
+# new order = 9000x # 900/3000*30000
+nNewOrder=56250
+# order line = 300000x
+# stock = 100000x
+declare -i nStock=$nWarehouse*100000
+# item = 100000
+nItem=100000
+
+echo > $OUTPUT_SQL
+
+echo "create table bmsql_config (
   cfg_name    varchar(30) primary key,
   cfg_value   varchar(50)
 );
+" >> $OUTPUT_SQL
 
-create cluster bmsql_warehouse_cluster (
+echo "create cluster bmsql_warehouse_cluster (
   w_id integer
 )
 single table
-hashkeys 1500
+hashkeys ${nWarehouse}
 hash is ((w_id - 1))
 size 3496
 initrans 2
 storage (buffer_pool default) parallel (degree 16);
+" >> $OUTPUT_SQL
 
-create cluster bmsql_district_cluster (
+echo "create cluster bmsql_district_cluster (
   d_id integer,
   d_w_id integer
 )
 single table
-hashkeys 15000
+hashkeys ${nDistrict}
 hash is ( (((d_w_id-1)*10)+d_id-1) )
 size 3496
 initrans 4
 storage (buffer_pool default) parallel (degree 16);
+" >> $OUTPUT_SQL
 
-create cluster bmsql_customer_cluster (
+echo "create cluster bmsql_customer_cluster (
   c_id integer,
   c_d_id integer,
   c_w_id integer
 )
 single table
-hashkeys 45000000
+hashkeys ${nCustomer}
 hash is ( (c_w_id * 30000 + c_id * 10 + c_d_id - 30011) )
 size 850
 pctfree 0 initrans 3
 storage (buffer_pool recycle) parallel (degree 96);
+" >> $OUTPUT_SQL
 
-create cluster bmsql_new_order_cluster (
+echo "create cluster bmsql_new_order_cluster (
   no_w_id integer,
   no_d_id integer,
   no_o_id integer SORT
 )
-hashkeys 56250
+hashkeys ${nNewOrder}
 hash is ((no_w_id - 1) * 10 + no_d_id -1)
 size 390 parallel (degree 16);
+" >> $OUTPUT_SQL
 
-create cluster bmsql_order_cluster (
+echo "create cluster bmsql_order_cluster (
   o_w_id integer,
   o_d_id integer,
   o_id integer SORT,
   ol_number integer SORT
 )
-hashkeys 56250
+hashkeys ${nOrder}
 hash is ((o_w_id - 1) * 10 + o_d_id -1)
 size 1490 parallel (degree 32);
+" >> $OUTPUT_SQL
 
-create cluster bmsql_item_cluster (
+echo "create cluster bmsql_item_cluster (
   i_id integer
 )
-hashkeys 100000
+hashkeys ${nItem}
 hash is ((i_id - 1))
 size 120
 pctfree 0 initrans 3
 storage (buffer_pool keep);
+" >> $OUTPUT_SQL
 
-create cluster bmsql_stock_cluster (
+echo "create cluster bmsql_stock_cluster (
   s_w_id integer,
   s_i_id integer
 )
 single table
-hashkeys 150000000
+hashkeys ${nStock}
 hash is ((abs(s_i_id-1) * 90000 + mod((s_w_id-1), 90000) + trunc((s_w_id-1) / 90000) * 90000 * 100000))
 size 270
 pctfree 0 initrans 2 maxtrans 2
 storage (buffer_pool keep) parallel (degree 96);
+" >> $OUTPUT_SQL
 
-create table bmsql_warehouse (
+echo "create table bmsql_warehouse (
   w_id        integer   not null,
   w_ytd       decimal(12,2),
   w_tax       decimal(4,4),
@@ -220,4 +255,4 @@ create table bmsql_stock (
 cluster bmsql_stock_cluster(
   s_w_id, s_i_id
 );
-
+" >> $OUTPUT_SQL
