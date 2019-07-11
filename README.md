@@ -16,17 +16,6 @@ Baseline Model:
   +  Enhanced report generating
   +  Fix tons of format issues
 
-Extended Model
-  +  Hash Clustering
-  +  Partition and Reference Partition
-  +  Reverse Index
-  +  Parallel PL/SQL
-  +  Cluster Sort
-  +  Result Cache
-  +  Index Skip Scan
-  +  Partition by Outer Join
-  +  PL/SQL Native Compilation
-
 Version 5.0 lussman & jannicash:
 --------------------------------------
   +  Upgrade to PostgreSQL 9.3 JDBC 4.1 version 1102 driver
