@@ -18,6 +18,7 @@ nOrder=56250
 # new order = 9000x # 900/3000*30000
 nNewOrder=56250
 # order line = 300000x
+nOrderLine=56250
 # stock = 100000x
 declare -i nStock=$nWarehouse*100000
 # item = 100000
@@ -80,10 +81,20 @@ size 390 parallel (degree 16);
 echo "create cluster bmsql_order_cluster (
   o_w_id integer,
   o_d_id integer,
+  o_id integer SORT
+)
+hashkeys ${nOrder}
+hash is ((o_w_id - 1) * 10 + o_d_id -1)
+size 1490 parallel (degree 32);
+" >> $OUTPUT_SQL
+
+echo "create cluster bmsql_order_line_cluster (
+  o_w_id integer,
+  o_d_id integer,
   o_id integer SORT,
   ol_number integer SORT
 )
-hashkeys ${nOrder}
+hashkeys ${nOrderLine}
 hash is ((o_w_id - 1) * 10 + o_d_id -1)
 size 1490 parallel (degree 32);
 " >> $OUTPUT_SQL
@@ -104,7 +115,7 @@ echo "create cluster bmsql_stock_cluster (
 )
 single table
 hashkeys ${nStock}
-hash is ((abs(s_i_id-1) * 90000 + mod((s_w_id-1), 90000) + trunc((s_w_id-1) / 90000) * 90000 * 100000))
+hash is ((abs(s_i_id-1) * ${nWarehouse} + mod((s_w_id-1), ${nWarehouse}) + trunc((s_w_id-1) / ${nWarehouse}) * ${nWarehouse} * 100000))
 size 270
 pctfree 0 initrans 2 maxtrans 2
 storage (buffer_pool keep) parallel (degree 96);
@@ -186,7 +197,7 @@ storage (buffer_pool recycle);
 create table bmsql_new_order (
   no_w_id  integer   not null,
   no_d_id  integer   not null,
-  no_o_id  integer   not null
+  no_o_id  integer   sort
 )
 cluster bmsql_new_order_cluster(
   no_w_id, no_d_id, no_o_id
@@ -195,7 +206,7 @@ cluster bmsql_new_order_cluster(
 create table bmsql_oorder (
   o_w_id       integer      not null,
   o_d_id       integer      not null,
-  o_id         integer      not null,
+  o_id         integer      sort,
   o_c_id       integer,
   o_carrier_id integer,
   o_ol_cnt     integer,
@@ -209,8 +220,8 @@ cluster bmsql_order_cluster (
 create table bmsql_order_line (
   ol_w_id         integer   not null,
   ol_d_id         integer   not null,
-  ol_o_id         integer   not null,
-  ol_number       integer   not null,
+  ol_o_id         integer   sort,
+  ol_number       integer   sort,
   ol_i_id         integer   not null,
   ol_delivery_d   timestamp,
   ol_amount       decimal(6,2),
@@ -218,7 +229,7 @@ create table bmsql_order_line (
   ol_quantity     integer,
   ol_dist_info    char(24)
 )
-cluster bmsql_order_cluster(
+cluster bmsql_order_line_cluster(
   ol_w_id, ol_d_id, ol_o_id, ol_number
 );
 

@@ -22,6 +22,8 @@ drop cluster bmsql_new_order_cluster;
 
 drop cluster bmsql_order_cluster;
 
+drop cluster bmsql_order_line_cluster;
+
 drop cluster bmsql_customer_cluster;
 
 drop cluster bmsql_stock_cluster;
