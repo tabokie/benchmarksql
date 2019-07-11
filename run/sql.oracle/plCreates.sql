@@ -573,3 +573,18 @@ CLOSE cursor;
 COMMIT;
 END bmsql_func_orderstatus;
 /
+
+-- needs @investigate
+-- slow down after turned to native, row object cache event
+ALTER PROCEDURE bmsql_func_neworder compile plsql_code_type=native;
+ALTER PROCEDURE bmsql_func_payment compile plsql_code_type=native;
+ALTER PROCEDURE bmsql_func_deliverybg compile plsql_code_type=native;
+ALTER PROCEDURE bmsql_func_stocklevel compile plsql_code_type=native;
+ALTER PROCEDURE bmsql_func_orderstatus compile plsql_code_type=native;
+ALTER PROCEDURE bmsql_func_rowid_from_clast compile plsql_code_type=native;
+ALTER TYPE MY_INT_ARR compile plsql_code_type=native;
+ALTER TYPE MY_NUM_ARR compile plsql_code_type=native;
+ALTER TYPE MY_VARCHAR_ARR compile plsql_code_type=native;
+ALTER TYPE MY_TS_ARR compile plsql_code_type=native;
+ALTER TYPE MY_CHAR_ARR compile plsql_code_type=native;
+ALTER PACKAGE bmsql_type compile plsql_code_type=native;
