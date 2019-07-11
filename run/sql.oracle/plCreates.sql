@@ -60,9 +60,9 @@ v_stock_quantity integer;
 v_stock_data varchar(50);
 v_dist bmsql_type.MY_CHAR_TABLE; -- must be table
 v_ol_amount bmsql_type.MY_NUM_TABLE;
-idx PLS_INTEGER;
-dummy_local PLS_INTEGER := in_d_id;
-cache_ol_cnt PLS_INTEGER := in_ol_cnt;
+idx SIMPLE_INTEGER := 0;
+dummy_local SIMPLE_INTEGER := in_d_id;
+cache_ol_cnt SIMPLE_INTEGER := in_ol_cnt;
 
 PROCEDURE u1 IS
 BEGIN
@@ -245,9 +245,9 @@ BEGIN
 END u10;
 
 PROCEDURE fix_item IS
-rows_lost PLS_INTEGER;
-max_index PLS_INTEGER;
-temp_index PLS_INTEGER;
+rows_lost SIMPLE_INTEGER := 0;
+max_index SIMPLE_INTEGER := 0;
+temp_index SIMPLE_INTEGER := 0;
 BEGIN
 idx := 1;
 rows_lost := 0;
@@ -412,7 +412,7 @@ PROCEDURE bmsql_func_deliverybg
 ) as
 v_order_id bmsql_type.MY_INT_TABLE;
 v_d_id bmsql_type.MY_INT_TABLE;
-v_ordcnt PLS_INTEGER;
+v_ordcnt SIMPLE_INTEGER := 0;
 v_o_c_id bmsql_type.MY_INT_TABLE;
 v_sums bmsql_type.MY_NUM_TABLE;
 v_current_ts TIMESTAMP := CURRENT_TIMESTAMP;
@@ -521,7 +521,6 @@ v_c_balance number;
 v_o_id integer;
 v_o_entry_d TIMESTAMP;
 v_o_carrier_id integer;
-v_ol_idx integer := 1;
 CURSOR cursor IS
 	SELECT ol_i_id, ol_supply_w_id, ol_quantity, ol_amount, ol_delivery_d
 	FROM bmsql_order_line
@@ -530,19 +529,7 @@ CURSOR cursor IS
     ORDER BY ol_w_id, ol_d_id, ol_o_id, ol_number;
 TYPE order_line_table IS TABLE OF cursor%rowtype INDEX BY BINARY_INTEGER;
 v_order_line order_line_table;
-out_ol_supply_w_id MY_INT_ARR := MY_INT_ARR();
-out_ol_i_id MY_INT_ARR := MY_INT_ARR();
-out_ol_quantity MY_INT_ARR := MY_INT_ARR();
-out_ol_amount MY_NUM_ARR := MY_NUM_ARR();
-out_ol_delivery_d MY_VARCHAR_ARR := MY_VARCHAR_ARR();
-v_ol_delivery_d MY_TS_ARR := MY_TS_ARR();
 BEGIN
-out_ol_supply_w_id.EXTEND(15);
-out_ol_i_id.EXTEND(15);
-out_ol_quantity.EXTEND(15);
-out_ol_amount.EXTEND(15);
-out_ol_delivery_d.EXTEND(15);
-v_ol_delivery_d.EXTEND(15);
 
 if in_c_last IS NOT NULL THEN
     bmsql_func_rowid_from_clast(in_w_id, in_d_id, in_c_last, v_rowid);
