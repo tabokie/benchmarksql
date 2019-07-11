@@ -5,7 +5,7 @@ user=bmsql
 password=bmsql
 
 warehouses=1500
-loadWorkers=512
+loadWorkers=128
 
 targetBegin=0
 targetSize=1500

@@ -584,11 +584,13 @@ create unique index bmsql_oorder_pkey
   pctfree 25 initrans 4
   compute statistics;
 
-alter table bmsql_new_order add constraint bmsql_new_order_pkey
-  primary key (no_w_id, no_d_id, no_o_id);
+create unique index bmsql_new_order_pkey
+  on bmsql_new_order (no_w_id, no_d_id, no_o_id)
+  compute statistics;
 
-alter table bmsql_order_line add constraint bmsql_order_line_pkey
-  primary key (ol_w_id, ol_d_id, ol_o_id, ol_number);
+create unique index bmsql_order_line_pkey
+  on bmsql_order_line (ol_w_id, ol_d_id, ol_o_id, ol_number)
+  compute statistics;
 
 create unique index bmsql_stock_pkey
   on bmsql_stock (s_i_id, s_w_id) -- reverse
