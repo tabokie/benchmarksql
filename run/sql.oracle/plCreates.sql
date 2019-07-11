@@ -256,11 +256,9 @@ WHILE (max_index != cache_ol_cnt) LOOP
     WHILE (idx <= sql%rowcount AND sql%bulk_rowcount(idx+rows_lost) = 1) LOOP
         idx := idx + 1;
     END LOOP;
-    temp_index := max_index;
-    WHILE (temp_index >= idx + rows_lost) LOOP
-        v_ol_amount(temp_index + 1) := v_ol_amount(temp_index);
-        v_dist(temp_index + 1) := v_dist(temp_index);
-        temp_index := temp_index - 1;
+    FOR temp_index IN idx+rows_lost+1 .. max_index LOOP
+        v_ol_amount(temp_index) := v_ol_amount(temp_index - 1);
+        v_dist(temp_index) := v_dist(temp_index - 1);
     END LOOP;
     IF (idx + rows_lost <= cache_ol_cnt) THEN
         v_ol_amount(idx + rows_lost) := 0;
@@ -469,6 +467,7 @@ BEGIN
 --     AND s_quantity < :threshold AND
 --     ol_o_id BETWEEN (d_next_o_id - 20) AND (d_next_o_id - 1)
 --     ORDER BY ol_o_id DESC;
+-- also, parallel hint
 SELECT count(1) INTO result FROM (
     SELECT s_w_id, s_i_id, s_quantity
         FROM bmsql_stock
