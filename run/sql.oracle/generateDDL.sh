@@ -1,9 +1,28 @@
-if [ $# -ne 1 ] ; then
-    echo "usage: $(basename $0) WAREHOUSES" >&2
+if [ $# -lt 1 ] ; then
+    echo "usage: $(basename $0) WAREHOUSES MODE" >&2
     exit 2
 fi
 
 OUTPUT_SQL=tableCreates.sql
+
+# mode=0(classic), 1(non-clustered), 2(hybrid)
+if [ $# -eq 2 ] ; then
+  declare -i Mode=$2
+else
+  declare -i Mode=0
+fi
+
+if [ $Mode -eq 2 ] ; then
+  echo "Hybrid"
+fi
+
+if [ $Mode -eq 1 ] ; then
+  echo "Plain"
+fi
+
+if [ $Mode -eq 0 ] ; then
+  echo "Classics"
+fi
 
 declare -i nWarehouse=$1
 ## cardinality:
@@ -14,15 +33,27 @@ declare -i nCustomer=$nWarehouse*30000
 # history = 30000x
 declare -i nHistory=$nWarehouse*30000
 # order = 30000x
-nOrder=56250
+# cluster nOrder=56250
+declare -i nOrder=$nWarehouse*10
 # new order = 9000x # 900/3000*30000
-nNewOrder=56250
+# cluster nNewOrder=56250
+declare -i nNewOrder=$nWarehouse*10
 # order line = 300000x
-nOrderLine=56250
+# cluster nOrderLine=56250
+declare -i nOrderLine=$nWarehouse*10
 # stock = 100000x
 declare -i nStock=$nWarehouse*100000
 # item = 100000
 nItem=100000
+## partition unit:
+# cluster --
+# order / order_line / new_order / history: by w_id 5625
+# others: by w_id 90000
+# small --
+# history: by w_id nWarehouse / 8
+
+declare -i nCore=96
+declare -i nSmallCore=$nCore/3
 
 echo > $OUTPUT_SQL
 
@@ -32,6 +63,7 @@ echo "create table bmsql_config (
 );
 " >> $OUTPUT_SQL
 
+if [ $Mode -ne 1 ] ; then
 echo "create cluster bmsql_warehouse_cluster (
   w_id integer
 )
@@ -40,9 +72,11 @@ hashkeys ${nWarehouse}
 hash is ((w_id - 1))
 size 3496
 initrans 2
-storage (buffer_pool default) parallel (degree 16);
+storage (buffer_pool default) parallel (degree ${nSmallCore});
 " >> $OUTPUT_SQL
+fi
 
+if [ $Mode -eq 0 ] ; then
 echo "create cluster bmsql_district_cluster (
   d_id integer,
   d_w_id integer
@@ -52,9 +86,11 @@ hashkeys ${nDistrict}
 hash is ( (((d_w_id-1)*10)+d_id-1) )
 size 3496
 initrans 4
-storage (buffer_pool default) parallel (degree 16);
+storage (buffer_pool default) parallel (degree ${nSmallCore});
 " >> $OUTPUT_SQL
+fi
 
+if [ $Mode -ne 1 ] ; then
 echo "create cluster bmsql_customer_cluster (
   c_id integer,
   c_d_id integer,
@@ -62,12 +98,16 @@ echo "create cluster bmsql_customer_cluster (
 )
 single table
 hashkeys ${nCustomer}
-hash is ( (c_w_id * 30000 + c_id * 10 + c_d_id - 30011) )
+hash is ( (c_id * (${nWarehouse} * 10) + c_w_id * 10 + c_d_id) )
 size 850
 pctfree 0 initrans 3
-storage (buffer_pool recycle) parallel (degree 96);
+storage (buffer_pool recycle) parallel (degree ${nCore});
 " >> $OUTPUT_SQL
+# on cluster
+# hash is ( (c_w_id * 30000 + c_id * 10 + c_d_id - 30011) )
+fi
 
+if [ $Mode -eq 0 ] ; then
 echo "create cluster bmsql_new_order_cluster (
   no_w_id integer,
   no_d_id integer,
@@ -75,9 +115,11 @@ echo "create cluster bmsql_new_order_cluster (
 )
 hashkeys ${nNewOrder}
 hash is ((no_w_id - 1) * 10 + no_d_id -1)
-size 390 parallel (degree 16);
+size 190 parallel (degree ${nSmallCore});
 " >> $OUTPUT_SQL
+fi
 
+if [ $Mode -eq 0 ] ; then
 echo "create cluster bmsql_order_cluster (
   o_w_id integer,
   o_d_id integer,
@@ -85,9 +127,11 @@ echo "create cluster bmsql_order_cluster (
 )
 hashkeys ${nOrder}
 hash is ((o_w_id - 1) * 10 + o_d_id -1)
-size 1490 parallel (degree 32);
+size 1490 parallel (degree ${nSmallCore});
 " >> $OUTPUT_SQL
+fi
 
+if [ $Mode -eq 0 ] ; then
 echo "create cluster bmsql_order_line_cluster (
   o_w_id integer,
   o_d_id integer,
@@ -96,9 +140,11 @@ echo "create cluster bmsql_order_line_cluster (
 )
 hashkeys ${nOrderLine}
 hash is ((o_w_id - 1) * 10 + o_d_id -1)
-size 1490 parallel (degree 32);
+size 1490 parallel (degree ${nSmallCore});
 " >> $OUTPUT_SQL
+fi
 
+if [ $Mode -ne 1 ] ; then
 echo "create cluster bmsql_item_cluster (
   i_id integer
 )
@@ -108,18 +154,23 @@ size 120
 pctfree 0 initrans 3
 storage (buffer_pool keep);
 " >> $OUTPUT_SQL
+fi
 
+if [ $Mode -ne 1 ] ; then
 echo "create cluster bmsql_stock_cluster (
   s_w_id integer,
   s_i_id integer
 )
 single table
 hashkeys ${nStock}
-hash is ((abs(s_i_id-1) * ${nWarehouse} + mod((s_w_id-1), ${nWarehouse}) + trunc((s_w_id-1) / ${nWarehouse}) * ${nWarehouse} * 100000))
+hash is ( (s_i_id-1) * ${nWarehouse} + s_w_id-1 )
 size 270
 pctfree 0 initrans 2 maxtrans 2
-storage (buffer_pool keep) parallel (degree 96);
+storage (buffer_pool keep) parallel (degree ${nCore});
 " >> $OUTPUT_SQL
+# on cluster
+# hash is ((abs(s_i_id-1) * ${nWarehouse} + mod((s_w_id-1), ${nWarehouse}) + trunc((s_w_id-1) / ${nWarehouse}) * ${nWarehouse} * 100000))
+fi
 
 echo "create table bmsql_warehouse (
   w_id        integer   not null,
@@ -131,12 +182,20 @@ echo "create table bmsql_warehouse (
   w_city      varchar(20),
   w_state     char(2),
   w_zip       char(9)
-)
-cluster bmsql_warehouse_cluster(
+)" >> $OUTPUT_SQL
+
+if [ $Mode -eq 1 ] ; then
+echo "initrans 2
+storage (buffer_pool default) parallel (degree ${nSmallCore});
+" >> $OUTPUT_SQL
+else
+echo "cluster bmsql_warehouse_cluster(
   w_id
 );
+" >> $OUTPUT_SQL
+fi
 
-create table bmsql_district (
+echo "create table bmsql_district (
   d_id         integer       not null,
   d_w_id       integer       not null,
   d_ytd        decimal(12,2),
@@ -148,12 +207,20 @@ create table bmsql_district (
   d_city       varchar(20),
   d_state      char(2),
   d_zip        char(9)
-)
-cluster bmsql_district_cluster(
+)" >> $OUTPUT_SQL
+
+if [ $Mode -eq 0 ] ; then
+echo "cluster bmsql_district_cluster(
   d_id, d_w_id
 );
+" >> $OUTPUT_SQL
+else
+echo "initrans 4
+storage (buffer_pool default) parallel (degree ${nSmallCore});
+" >> $OUTPUT_SQL
+fi
 
-create table bmsql_customer (
+echo "create table bmsql_customer (
   c_id           integer        not null,
   c_d_id         integer        not null,
   c_w_id         integer        not null,
@@ -175,12 +242,20 @@ create table bmsql_customer (
   c_since        timestamp,
   c_middle       char(2),
   c_data         varchar(500)
-)
-cluster bmsql_customer_cluster (
+)" >> $OUTPUT_SQL
+
+if [ $Mode -eq 1 ] ; then
+echo "pctfree 0 initrans 3
+storage (buffer_pool recycle) parallel (degree ${nCore});
+" >> $OUTPUT_SQL
+else
+echo "cluster bmsql_customer_cluster (
   c_id, c_d_id, c_w_id
 );
+" >> $OUTPUT_SQL
+fi
 
-create table bmsql_history (
+echo "create table bmsql_history (
   -- hist_id  integer,
   h_c_id   integer,
   h_c_d_id integer,
@@ -193,17 +268,25 @@ create table bmsql_history (
 )
 pctfree 5 initrans 4
 storage (buffer_pool recycle);
+" >> $OUTPUT_SQL
 
-create table bmsql_new_order (
+echo "create table bmsql_new_order (
   no_w_id  integer   not null,
   no_d_id  integer   not null,
   no_o_id  integer   sort
-)
-cluster bmsql_new_order_cluster(
+)" >> $OUTPUT_SQL
+
+if [ $Mode -eq 0 ] ; then
+echo "cluster bmsql_new_order_cluster (
   no_w_id, no_d_id, no_o_id
 );
+" >> $OUTPUT_SQL
+else
+echo "parallel (degree ${nSmallCore});
+" >> $OUTPUT_SQL
+fi
 
-create table bmsql_oorder (
+echo "create table bmsql_oorder (
   o_w_id       integer      not null,
   o_d_id       integer      not null,
   o_id         integer      sort,
@@ -212,12 +295,19 @@ create table bmsql_oorder (
   o_ol_cnt     integer,
   o_all_local  integer,
   o_entry_d    timestamp
-)
-cluster bmsql_order_cluster (
+)" >> $OUTPUT_SQL
+
+if [ $Mode -eq 0 ] ; then
+echo "cluster bmsql_order_cluster (
   o_w_id, o_d_id, o_id
 );
+" >> $OUTPUT_SQL
+else
+echo "parallel (degree ${nSmallCore});
+" >> $OUTPUT_SQL
+fi
 
-create table bmsql_order_line (
+echo "create table bmsql_order_line (
   ol_w_id         integer   not null,
   ol_d_id         integer   not null,
   ol_o_id         integer   sort,
@@ -228,23 +318,38 @@ create table bmsql_order_line (
   ol_supply_w_id  integer,
   ol_quantity     integer,
   ol_dist_info    char(24)
-)
-cluster bmsql_order_line_cluster(
+)" >> $OUTPUT_SQL
+
+if [ $Mode -eq 0 ] ; then
+echo "cluster bmsql_order_line_cluster (
   ol_w_id, ol_d_id, ol_o_id, ol_number
 );
+" >> $OUTPUT_SQL
+else
+echo "parallel (degree ${nSmallCore});
+" >> $OUTPUT_SQL
+fi
 
-create table bmsql_item (
+echo "create table bmsql_item (
   i_id     integer      not null,
   i_name   varchar(24),
   i_price  decimal(5,2),
   i_data   varchar(50),
   i_im_id  integer
-)
-cluster bmsql_item_cluster(
+)" >> $OUTPUT_SQL
+
+if [ $Mode -eq 1 ] ; then
+echo "pctfree 0 initrans 3
+storage (buffer_pool keep);
+" >> $OUTPUT_SQL
+else
+echo "cluster bmsql_item_cluster(
   i_id
 );
+" >> $OUTPUT_SQL
+fi
 
-create table bmsql_stock (
+echo "create table bmsql_stock (
   s_w_id       integer       not null,
   s_i_id       integer       not null,
   s_quantity   integer,
@@ -262,8 +367,17 @@ create table bmsql_stock (
   s_dist_08    char(24),
   s_dist_09    char(24),
   s_dist_10    char(24)
-)
-cluster bmsql_stock_cluster(
+)" >> $OUTPUT_SQL
+
+if [ $Mode -eq 1 ] ; then
+echo "pctfree 0 initrans 2 maxtrans 2
+storage (buffer_pool keep) parallel (degree ${nCore});
+" >> $OUTPUT_SQL
+else
+echo "cluster bmsql_stock_cluster(
   s_w_id, s_i_id
 );
 " >> $OUTPUT_SQL
+fi
+
+echo "alter system flush shared_pool;" >> $OUTPUT_SQL;

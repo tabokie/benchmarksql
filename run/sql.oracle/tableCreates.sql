@@ -12,18 +12,7 @@ hashkeys 1500
 hash is ((w_id - 1))
 size 3496
 initrans 2
-storage (buffer_pool default) parallel (degree 16);
-
-create cluster bmsql_district_cluster (
-  d_id integer,
-  d_w_id integer
-)
-single table
-hashkeys 15000
-hash is ( (((d_w_id-1)*10)+d_id-1) )
-size 3496
-initrans 4
-storage (buffer_pool default) parallel (degree 16);
+storage (buffer_pool default) parallel (degree 32);
 
 create cluster bmsql_customer_cluster (
   c_id integer,
@@ -32,38 +21,10 @@ create cluster bmsql_customer_cluster (
 )
 single table
 hashkeys 45000000
-hash is ( (c_w_id * 30000 + c_id * 10 + c_d_id - 30011) )
+hash is ( (c_id * (1500 * 10) + c_w_id * 10 + c_d_id) )
 size 850
 pctfree 0 initrans 3
 storage (buffer_pool recycle) parallel (degree 96);
-
-create cluster bmsql_new_order_cluster (
-  no_w_id integer,
-  no_d_id integer,
-  no_o_id integer SORT
-)
-hashkeys 56250
-hash is ((no_w_id - 1) * 10 + no_d_id -1)
-size 390 parallel (degree 16);
-
-create cluster bmsql_order_cluster (
-  o_w_id integer,
-  o_d_id integer,
-  o_id integer SORT
-)
-hashkeys 56250
-hash is ((o_w_id - 1) * 10 + o_d_id -1)
-size 1490 parallel (degree 32);
-
-create cluster bmsql_order_line_cluster (
-  o_w_id integer,
-  o_d_id integer,
-  o_id integer SORT,
-  ol_number integer SORT
-)
-hashkeys 56250
-hash is ((o_w_id - 1) * 10 + o_d_id -1)
-size 1490 parallel (degree 32);
 
 create cluster bmsql_item_cluster (
   i_id integer
@@ -80,7 +41,7 @@ create cluster bmsql_stock_cluster (
 )
 single table
 hashkeys 150000000
-hash is ((abs(s_i_id-1) * 1500 + mod((s_w_id-1), 1500) + trunc((s_w_id-1) / 1500) * 1500 * 100000))
+hash is ( (s_i_id-1) * 1500 + s_w_id-1 )
 size 270
 pctfree 0 initrans 2 maxtrans 2
 storage (buffer_pool keep) parallel (degree 96);
@@ -113,9 +74,8 @@ create table bmsql_district (
   d_state      char(2),
   d_zip        char(9)
 )
-cluster bmsql_district_cluster(
-  d_id, d_w_id
-);
+initrans 4
+storage (buffer_pool default) parallel (degree 32);
 
 create table bmsql_customer (
   c_id           integer        not null,
@@ -163,9 +123,7 @@ create table bmsql_new_order (
   no_d_id  integer   not null,
   no_o_id  integer   sort
 )
-cluster bmsql_new_order_cluster(
-  no_w_id, no_d_id, no_o_id
-);
+parallel (degree 32);
 
 create table bmsql_oorder (
   o_w_id       integer      not null,
@@ -177,9 +135,7 @@ create table bmsql_oorder (
   o_all_local  integer,
   o_entry_d    timestamp
 )
-cluster bmsql_order_cluster (
-  o_w_id, o_d_id, o_id
-);
+parallel (degree 32);
 
 create table bmsql_order_line (
   ol_w_id         integer   not null,
@@ -193,9 +149,7 @@ create table bmsql_order_line (
   ol_quantity     integer,
   ol_dist_info    char(24)
 )
-cluster bmsql_order_line_cluster(
-  ol_w_id, ol_d_id, ol_o_id, ol_number
-);
+parallel (degree 32);
 
 create table bmsql_item (
   i_id     integer      not null,
@@ -231,3 +185,4 @@ cluster bmsql_stock_cluster(
   s_w_id, s_i_id
 );
 
+alter system flush shared_pool;
