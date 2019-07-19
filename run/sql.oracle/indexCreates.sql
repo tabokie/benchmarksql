@@ -12,7 +12,7 @@ create unique index bmsql_district_pkey
   compute statistics;
 
 create unique index bmsql_customer_pkey
-  on bmsql_customer (c_w_id, c_d_id, c_id) reverse
+  on bmsql_customer (c_w_id, c_d_id, c_id) -- reverse
   parallel 32
   pctfree 1 initrans 3
   compute statistics;
@@ -24,7 +24,7 @@ create unique index bmsql_customer_idx
   compute statistics;
 
 create unique index bmsql_oorder_pkey
-  on bmsql_oorder (o_w_id, o_d_id, o_c_id, o_id) reverse
+  on bmsql_oorder (o_w_id, o_d_id, o_c_id, o_id) -- reverse
   parallel 32
   pctfree 25 initrans 4
   compute statistics;
@@ -38,7 +38,7 @@ create unique index bmsql_order_line_pkey
   compute statistics;
 
 create unique index bmsql_stock_pkey
-  on bmsql_stock (s_i_id, s_w_id) reverse
+  on bmsql_stock (s_i_id, s_w_id) -- reverse
   parallel 32
   pctfree 1 initrans 3
   compute statistics;

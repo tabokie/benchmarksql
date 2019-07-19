@@ -44,9 +44,9 @@ PROCEDURE bmsql_func_neworder
     in_c_id IN integer,
     in_ol_cnt IN integer,
     in_o_all_local IN integer,
-    in_ol_iid MY_INT_ARR,
-    in_ol_supply_wid MY_INT_ARR,
-    in_ol_quantity MY_INT_ARR
+    in_ol_iid IN MY_INT_ARR,
+    in_ol_supply_wid IN MY_INT_ARR,
+    in_ol_quantity IN MY_INT_ARR
 ) as 
 v_district_oid integer;
 v_customer_discount decimal(4,4);
@@ -270,9 +270,9 @@ END LOOP;
 END fix_item;
 
 BEGIN
-SELECT d_next_o_id INTO v_district_oid
-    FROM bmsql_district
-    WHERE d_w_id = in_w_id AND d_id = in_d_id FOR UPDATE;
+SELECT d.d_next_o_id INTO v_district_oid
+    FROM bmsql_district d
+    WHERE d.d_w_id = in_w_id AND d.d_id = in_d_id FOR UPDATE OF d.d_next_o_id;
 SELECT c_discount, c_last, c_credit, w_tax
     INTO v_customer_discount, v_customer_last, v_customer_credit, v_warehouse_tax
     FROM bmsql_customer JOIN bmsql_warehouse ON (w_id = c_w_id)
@@ -392,15 +392,6 @@ COMMIT;
 END bmsql_func_payment;
 /
 
--- needs @investigate
--- possible optimization:
--- CREATE OR REPLACE VIEW bmsql_oorder_line
--- (i_id, w_id, d_id, o_carrier_id, ol_delivery_d)
--- AS
--- SELECT /*+ leading(o) use_nl(ol) */ o.o_id, o.o_w_id, o.o_d_id, o.o_carrier_id, ol.ol_delivery_d
--- FROM bmsql_oorder o, bmsql_order_line ol
--- WHERE o.o_id = ol.ol_i_id AND o.o_w_id = ol.ol_w_id AND o.o_d_id = ol.ol_d_id;
-
 /
 create or replace
 PROCEDURE bmsql_func_deliverybg
@@ -416,6 +407,7 @@ v_sums bmsql_type.MY_NUM_TABLE;
 v_current_ts TIMESTAMP := CURRENT_TIMESTAMP;
 BEGIN
 
+-- tunnable, multiple plans during execution
 FORALL d IN 1..10
     DELETE FROM bmsql_new_order N
         WHERE no_d_id = bmsql_type.idx_helper(d)
@@ -460,11 +452,11 @@ result integer;
 BEGIN
 -- needs @investigate
 -- faster than fdr version:
--- SELECT /*+ nocache(stok) */ count(DISTINCT s_i_id)
---     FROM ordl, stok, dist
---     WHERE d_id = :d_id AND d_w_id = :w_id AND d_id = ol_d_id
+-- SELECT count(DISTINCT s_i_id) INTO result
+--     FROM bmsql_order_line, bmsql_stock, bmsql_district
+--     WHERE d_id = in_d_id AND d_w_id = in_w_id AND d_id = ol_d_id
 --     AND d_w_id = ol_w_id AND ol_i_id = s_i_id AND ol_w_id = s_w_id
---     AND s_quantity < :threshold AND
+--     AND s_quantity < in_threshold AND
 --     ol_o_id BETWEEN (d_next_o_id - 20) AND (d_next_o_id - 1)
 --     ORDER BY ol_o_id DESC;
 -- also, parallel hint
@@ -472,12 +464,11 @@ SELECT count(1) INTO result FROM (
     SELECT s_w_id, s_i_id, s_quantity
         FROM bmsql_stock
         WHERE s_w_id = in_w_id AND s_quantity < in_threshold AND s_i_id IN (
-            SELECT ol_i_id
+            SELECT /*+ CURSOR_SHARING_EXACT */ ol_i_id
                 FROM bmsql_district
                 JOIN bmsql_order_line ON ol_w_id = d_w_id
                 AND ol_d_id = d_id
-                AND ol_o_id >= d_next_o_id - 20
-                AND ol_o_id < d_next_o_id
+                AND ol_o_id BETWEEN (d_next_o_id - 20) AND (d_next_o_id - 1)
                 WHERE d_w_id = in_w_id AND d_id = in_d_id
         )
 );
@@ -560,17 +551,16 @@ COMMIT;
 END bmsql_func_orderstatus;
 /
 
--- needs @investigate
--- slow down after turned to native, row object cache event
-ALTER PROCEDURE bmsql_func_neworder compile plsql_code_type=native;
-ALTER PROCEDURE bmsql_func_payment compile plsql_code_type=native;
-ALTER PROCEDURE bmsql_func_deliverybg compile plsql_code_type=native;
-ALTER PROCEDURE bmsql_func_stocklevel compile plsql_code_type=native;
-ALTER PROCEDURE bmsql_func_orderstatus compile plsql_code_type=native;
-ALTER PROCEDURE bmsql_func_rowid_from_clast compile plsql_code_type=native;
-ALTER TYPE MY_INT_ARR compile plsql_code_type=native;
-ALTER TYPE MY_NUM_ARR compile plsql_code_type=native;
-ALTER TYPE MY_VARCHAR_ARR compile plsql_code_type=native;
-ALTER TYPE MY_TS_ARR compile plsql_code_type=native;
-ALTER TYPE MY_CHAR_ARR compile plsql_code_type=native;
-ALTER PACKAGE bmsql_type compile plsql_code_type=native;
+-- little boost since sql composes majority
+ALTER PROCEDURE bmsql_func_neworder compile plsql_code_type=interpreted;
+ALTER PROCEDURE bmsql_func_payment compile plsql_code_type=interpreted;
+ALTER PROCEDURE bmsql_func_deliverybg compile plsql_code_type=interpreted;
+ALTER PROCEDURE bmsql_func_stocklevel compile plsql_code_type=interpreted;
+ALTER PROCEDURE bmsql_func_orderstatus compile plsql_code_type=interpreted;
+ALTER PROCEDURE bmsql_func_rowid_from_clast compile plsql_code_type=interpreted;
+ALTER TYPE MY_INT_ARR compile plsql_code_type=interpreted;
+ALTER TYPE MY_NUM_ARR compile plsql_code_type=interpreted;
+ALTER TYPE MY_VARCHAR_ARR compile plsql_code_type=interpreted;
+ALTER TYPE MY_TS_ARR compile plsql_code_type=interpreted;
+ALTER TYPE MY_CHAR_ARR compile plsql_code_type=interpreted;
+ALTER PACKAGE bmsql_type compile plsql_code_type=interpreted;
