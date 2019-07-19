@@ -1,6 +1,6 @@
 db=oracle
 driver=oracle.jdbc.driver.OracleDriver
-conn=jdbc:oracle:thin:@localhost:1521:orcl11g
+conn=jdbc:oracle:thin:@localhost:1521:orcl12c
 user=bmsql
 password=bmsql
 
