@@ -1,11 +1,11 @@
 db=postgres
 driver=org.postgresql.Driver
 conn=jdbc:postgresql://localhost:5432/postgres
-user=benchmarksql
-password=PWbmsql
+user=bmsql
+password=bmsql
 
-warehouses=1
-loadWorkers=4
+warehouses=1500
+loadWorkers=90
 
 terminals=1
 //To run specified transactions per terminal- runMins must equal zero
@@ -29,7 +29,7 @@ stockLevelWeight=4
 
 // Directory name to create for collecting detailed result data.
 // Comment this out to suppress.
-resultDirectory=my_result_%tY-%tm-%td_%tH%tM%tS
+resultDirectory=pg_result_%tY-%tm-%td_%tH%tM%tS
 osCollectorScript=./misc/os_collector_linux.py
 osCollectorInterval=1
 //osCollectorSSHAddr=user@dbhost

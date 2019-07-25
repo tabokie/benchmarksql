@@ -30,7 +30,7 @@ create unique index bmsql_oorder_pkey
   compute statistics;
 
 create unique index bmsql_new_order_pkey
-  on bmsql_new_order (no_w_id, no_d_id, no_o_id)
+  on bmsql_new_order (no_w_id, no_d_id, no_o_id) -- reverse
   compute statistics;
 
 create unique index bmsql_order_line_pkey

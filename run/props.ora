@@ -5,7 +5,7 @@ user=bmsql
 password=bmsql
 
 warehouses=1500
-loadWorkers=128
+loadWorkers=90
 
 targetBegin=0
 targetSize=1500
@@ -38,7 +38,7 @@ terminalWarehouseFixed=true
 
 // Directory name to create for collecting detailed result data.
 // Comment this out to suppress.
-resultDirectory=my_result_%tY-%tm-%td_%tH%tM%tS
+resultDirectory=oracle_result_%tY-%tm-%td_%tH%tM%tS
 osCollectorScript=./misc/os_collector_linux.py
 osCollectorInterval=1
 // osCollectorSSHAddr=user@dbhost
