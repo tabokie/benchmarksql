@@ -1,31 +1,27 @@
 
-alter table bmsql_warehouse add constraint bmsql_warehouse_pkey
-  primary key (w_id);
+create unique index bmsql_warehouse_pkey
+  on bmsql_warehouse (w_id);
 
-alter table bmsql_district add constraint bmsql_district_pkey
-  primary key (d_w_id, d_id);
+create unique index bmsql_district_pkey
+  on bmsql_district (d_w_id, d_id);
 
-alter table bmsql_customer add constraint bmsql_customer_pkey
-  primary key (c_w_id, c_d_id, c_id);
+create unique index bmsql_customer_pkey
+  on bmsql_customer (c_w_id, c_d_id, c_id);
 
-create index bmsql_customer_idx1
-  on  bmsql_customer (c_w_id, c_d_id, c_last, c_first);
+create index bmsql_customer_idx
+  on bmsql_customer (c_w_id, c_last, c_d_id, c_first, c_id);
 
-alter table bmsql_oorder add constraint bmsql_oorder_pkey
-  primary key (o_w_id, o_d_id, o_id);
+create unique index bmsql_oorder_pkey
+  on bmsql_oorder (o_w_id, o_d_id, o_c_id, o_id);
 
-create unique index bmsql_oorder_idx1
-  on  bmsql_oorder (o_w_id, o_d_id, o_carrier_id, o_id);
+create unique index bmsql_new_order_pkey
+  on bmsql_new_order (no_w_id, no_d_id, no_o_id);
 
-alter table bmsql_new_order add constraint bmsql_new_order_pkey
-  primary key (no_w_id, no_d_id, no_o_id);
+create unique index bmsql_order_line_pkey
+  on bmsql_order_line (ol_w_id, ol_d_id, ol_o_id, ol_number);
 
-alter table bmsql_order_line add constraint bmsql_order_line_pkey
-  primary key (ol_w_id, ol_d_id, ol_o_id, ol_number);
+create unique index bmsql_stock_pkey
+  on bmsql_stock(s_i_id, s_w_id);
 
-alter table bmsql_stock add constraint bmsql_stock_pkey
-  primary key (s_w_id, s_i_id);
-
-alter table bmsql_item add constraint bmsql_item_pkey
-  primary key (i_id);
-
+create unique index bmsql_item_pkey
+  on bmsql_item (i_id);
